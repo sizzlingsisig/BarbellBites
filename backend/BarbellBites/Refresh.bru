@@ -1,0 +1,26 @@
+meta {
+  name: Refresh
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{V1_API_LINK}}/auth/refresh
+  body: none
+  auth: none
+}
+
+script:post-response {
+  // Post Response Script for Refresh
+  const data = res.getBody();
+  
+  if (data.status === 'success' && data.accessToken) {
+    // Overwrite the expired token with the fresh one
+    bru.setEnvVar("jwt_token", data.accessToken);
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

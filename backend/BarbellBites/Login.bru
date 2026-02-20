@@ -1,0 +1,38 @@
+meta {
+  name: Login
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{V1_API_LINK}}/auth/login
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "name": "aaaaa",
+    "email": "aasdsd@test.com",
+    "password": "lightweightbaby"
+  }
+}
+
+vars:pre-request {
+  : 
+}
+
+script:post-response {
+  // Post Response Script for Login/Register
+  const data = res.getBody();
+  
+  if (data.status === 'success' && data.accessToken) {
+    // Capture the short-lived access token
+    bru.setEnvVar("jwt_token", data.accessToken);
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

@@ -1,0 +1,26 @@
+meta {
+  name: Logout
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{V1_API_LINK}}/auth/logout
+  body: none
+  auth: none
+}
+
+script:post-response {
+  // Post Response Script for Logout
+  const data = res.getBody();
+  
+  if (data.status === 'success') {
+    // Remove local access token after logout
+    bru.setEnvVar("jwt_token", "");
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

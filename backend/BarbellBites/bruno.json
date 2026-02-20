@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "BarbellBites",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}
