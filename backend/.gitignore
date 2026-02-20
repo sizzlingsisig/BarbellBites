@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+
+# Environment Variables (CRITICAL SECURITY)
+.env
+.env.test
+.env.production
+.env.local
+
+# TypeScript Compiled Output
+dist/
+build/
+
+# Log Files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs/
+*.log
+
+# OS Generated Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE and Editor Folders
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Bruno API Client Secrets (Keeps collections in Git, but hides environment secrets)
+bruno/environments/*.bru
