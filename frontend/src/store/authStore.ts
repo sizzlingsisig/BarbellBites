@@ -1,6 +1,5 @@
 import { AxiosError } from 'axios'
 import { create } from 'zustand'
-import { configureAuthBindings } from '../api/axios'
 import {
   fetchCurrentUserRequest,
   loginRequest,
@@ -143,9 +142,3 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     }
   },
 }))
-
-configureAuthBindings({
-  getAccessToken: () => useAuthStore.getState().accessToken,
-  setAccessToken: (token) => useAuthStore.getState().setAccessToken(token),
-  clearAuthState: () => useAuthStore.getState().clearAuth(),
-})
