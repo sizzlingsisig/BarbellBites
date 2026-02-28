@@ -1,76 +1,169 @@
 // src/controllers/authController.ts
 import { Request, Response } from 'express';
 import { RegisterBody, LoginBody } from '../requests/authRequests.js';
-import { registerUser, loginUser, refreshUserToken, revokeRefreshToken } from '../services/authService.js';
-import { AppError } from '../utils/AppError.js';
+import {
+  AuthServiceError,
+  registerUser,
+  loginUser,
+  refreshUserToken,
+  revokeRefreshToken,
+} from '../services/authService.js';
 import { HttpStatusCode } from '../constants/httpStatusCodes.js'; 
-import { asyncHandler } from '../utils/asyncHandler.js';
 import {
   clearRefreshTokenCookie,
   getRefreshTokenFromCookies,
   setRefreshTokenCookie,
 } from '../utils/refreshCookie.js';
 
-export const register = asyncHandler(async (req: Request<{}, {}, RegisterBody>, res: Response) => {
-  const result = await registerUser(req.body);
+const mapAuthServiceError = (error: AuthServiceError) => {
+  if (error.code === 'EMAIL_ALREADY_EXISTS') {
+    return {
+      statusCode: HttpStatusCode.STATE_CONFLICT,
+      message: error.message,
+    };
+  }
 
-  setRefreshTokenCookie(res, result.refreshToken);
+  if (error.code === 'INVALID_CREDENTIALS' || error.code === 'INVALID_REFRESH_TOKEN') {
+    return {
+      statusCode: HttpStatusCode.UNAUTHORIZED,
+      message: error.message,
+    };
+  }
 
-  return res.status(HttpStatusCode.CREATED).json({
-    status: 'success',
-    accessToken: result.accessToken,
-    data: { user: result.user }
-  });
-});
+  return {
+    statusCode: HttpStatusCode.INTERNAL_SERVER,
+    message: 'An unexpected authentication error occurred.',
+  };
+};
 
-export const login = asyncHandler(async (req: Request<{}, {}, LoginBody>, res: Response) => {
-  const result = await loginUser(req.body);
+export const register = async (
+  req: Request<{}, {}, RegisterBody>,
+  res: Response,
+) => {
+  try {
+    const result = await registerUser(req.body);
 
-  setRefreshTokenCookie(res, result.refreshToken);
+    setRefreshTokenCookie(res, result.refreshToken);
 
-  return res.status(HttpStatusCode.OK).json({
-    status: 'success',
-    accessToken: result.accessToken,
-    data: { user: result.user }
-  });
-});
-
-export const getTest = asyncHandler(async (req: Request, res: Response) => {
-  return res.status(HttpStatusCode.OK).json({
-    status: 'success',
-    data: {
-      user: req.user
+    return res.status(HttpStatusCode.CREATED).json({
+      status: 'success',
+      accessToken: result.accessToken,
+      data: { user: result.user }
+    });
+  } catch (error) {
+    if (error instanceof AuthServiceError) {
+      const { statusCode, message } = mapAuthServiceError(error);
+      return res.status(statusCode).json({
+        status: 'error',
+        message,
+      });
     }
-  });
-});
 
-export const refresh = asyncHandler(async (req: Request, res: Response) => {
-  const refreshToken = getRefreshTokenFromCookies(req.cookies);
-
-  if (!refreshToken) {
-    throw new AppError('No refresh token found. Please log in.', HttpStatusCode.UNAUTHORIZED);
+    return res.status(HttpStatusCode.INTERNAL_SERVER).json({
+      status: 'error',
+      message: 'An unexpected authentication error occurred.',
+    });
   }
+};
 
-  const result = await refreshUserToken(refreshToken);
-  setRefreshTokenCookie(res, result.refreshToken);
+export const login = async (
+  req: Request<{}, {}, LoginBody>,
+  res: Response,
+) => {
+  try {
+    const result = await loginUser(req.body);
 
-  return res.status(HttpStatusCode.OK).json({
-    status: 'success',
-    accessToken: result.accessToken
-  });
-});
+    setRefreshTokenCookie(res, result.refreshToken);
 
-export const logout = asyncHandler(async (req: Request, res: Response) => {
-  const refreshToken = getRefreshTokenFromCookies(req.cookies);
+    return res.status(HttpStatusCode.OK).json({
+      status: 'success',
+      accessToken: result.accessToken,
+      data: { user: result.user }
+    });
+  } catch (error) {
+    if (error instanceof AuthServiceError) {
+      const { statusCode, message } = mapAuthServiceError(error);
+      return res.status(statusCode).json({
+        status: 'error',
+        message,
+      });
+    }
 
-  if (refreshToken) {
-    await revokeRefreshToken(refreshToken);
+    return res.status(HttpStatusCode.INTERNAL_SERVER).json({
+      status: 'error',
+      message: 'An unexpected authentication error occurred.',
+    });
   }
+};
 
-  clearRefreshTokenCookie(res);
+export const getTest = async (req: Request, res: Response) => {
+  try {
+    return res.status(HttpStatusCode.OK).json({
+      status: 'success',
+      data: {
+        user: req.user
+      }
+    });
+  } catch {
+    return res.status(HttpStatusCode.INTERNAL_SERVER).json({
+      status: 'error',
+      message: 'An unexpected authentication error occurred.',
+    });
+  }
+};
 
-  return res.status(HttpStatusCode.OK).json({
-    status: 'success',
-    message: 'Logged out successfully.'
-  });
-});
+export const refresh = async (req: Request, res: Response) => {
+  try {
+    const refreshToken = getRefreshTokenFromCookies(req.cookies);
+
+    if (!refreshToken) {
+      return res.status(HttpStatusCode.UNAUTHORIZED).json({
+        status: 'error',
+        message: 'No refresh token found. Please log in.',
+      });
+    }
+
+    const result = await refreshUserToken(refreshToken);
+    setRefreshTokenCookie(res, result.refreshToken);
+
+    return res.status(HttpStatusCode.OK).json({
+      status: 'success',
+      accessToken: result.accessToken
+    });
+  } catch (error) {
+    if (error instanceof AuthServiceError) {
+      const { statusCode, message } = mapAuthServiceError(error);
+      return res.status(statusCode).json({
+        status: 'error',
+        message,
+      });
+    }
+
+    return res.status(HttpStatusCode.INTERNAL_SERVER).json({
+      status: 'error',
+      message: 'An unexpected authentication error occurred.',
+    });
+  }
+};
+
+export const logout = async (req: Request, res: Response) => {
+  try {
+    const refreshToken = getRefreshTokenFromCookies(req.cookies);
+
+    if (refreshToken) {
+      await revokeRefreshToken(refreshToken);
+    }
+
+    clearRefreshTokenCookie(res);
+
+    return res.status(HttpStatusCode.OK).json({
+      status: 'success',
+      message: 'Logged out successfully.'
+    });
+  } catch {
+    return res.status(HttpStatusCode.INTERNAL_SERVER).json({
+      status: 'error',
+      message: 'An unexpected authentication error occurred.',
+    });
+  }
+};

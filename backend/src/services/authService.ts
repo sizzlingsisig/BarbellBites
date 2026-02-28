@@ -1,12 +1,26 @@
 // src/services/authService.ts
 import User from '../models/User.js';
-import { AppError } from '../utils/AppError.js';
 import {
   hashToken,
   signAccessToken,
   signRefreshToken,
   verifyRefreshToken,
 } from '../utils/tokenUtils.js';
+
+export type AuthServiceErrorCode =
+  | 'EMAIL_ALREADY_EXISTS'
+  | 'INVALID_CREDENTIALS'
+  | 'INVALID_REFRESH_TOKEN';
+
+export class AuthServiceError extends Error {
+  public code: AuthServiceErrorCode;
+
+  constructor(code: AuthServiceErrorCode, message: string) {
+    super(message);
+    this.name = 'AuthServiceError';
+    this.code = code;
+  }
+}
 
 interface AuthResult {
   accessToken: string;
@@ -34,7 +48,7 @@ export const registerUser = async (data: RegisterUserInput): Promise<AuthResult>
 
   const userExists = await User.findOne({ email });
   if (userExists) {
-    throw new AppError('An account with this email already exists.', 409);
+    throw new AuthServiceError('EMAIL_ALREADY_EXISTS', 'An account with this email already exists.');
   }
 
   const user = await User.create({ name, email, password });
@@ -58,7 +72,7 @@ export const loginUser = async (data: LoginUserInput): Promise<AuthResult> => {
   const user = await User.findOne({ email }).select('+password');
 
   if (!user || !(await user.comparePassword(password))) {
-    throw new AppError('Invalid email or password', 401);
+    throw new AuthServiceError('INVALID_CREDENTIALS', 'Invalid email or password');
   }
 
   const accessToken = signAccessToken(user._id.toString());
@@ -81,7 +95,7 @@ export const refreshUserToken = async (refreshToken: string) => {
   const user = await User.findById(decoded.id);
   
   if (!user || user.refreshToken !== refreshTokenHash) {
-    throw new AppError('Invalid or expired refresh token.', 401);
+    throw new AuthServiceError('INVALID_REFRESH_TOKEN', 'Invalid or expired refresh token.');
   }
 
   const accessToken = signAccessToken(user._id.toString());
