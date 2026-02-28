@@ -3,12 +3,21 @@ import cors from 'cors';
 import morgan from 'morgan';
 import authRoutes from './router/authRoutes.js';
 import { errorHandler, notFound } from './middleware/errorMiddleware.js';
-import cookieParser from "cookie-parser";
+import cookieParser from 'cookie-parser';
 
 const app: Application = express();
+const corsOrigins = (process.env.FRONTEND_ORIGIN ?? 'http://localhost:5173')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
 // Global Middleware
-app.use(cors());
+app.use(
+  cors({
+    origin: corsOrigins,
+    credentials: true,
+  }),
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
