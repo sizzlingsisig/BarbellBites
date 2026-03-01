@@ -1,0 +1,36 @@
+# Recipe API Collection (Bruno)
+
+POST {{baseUrl}}/api/v1/recipes
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+{
+  "title": "Test Recipe",
+  "description": "A tasty test recipe",
+  "visibility": "public",
+  "tags": ["test", "easy"],
+  "ingredients": [
+    { "name": "Egg", "amount": "2", "unit": "pcs" },
+    { "name": "Salt", "amount": "1", "unit": "tsp" }
+  ],
+  "instructions": ["Crack eggs", "Add salt", "Cook"],
+  "nutrition": { "calories": 200, "protein": 12, "carbs": 2, "fats": 10 }
+}
+
+GET {{baseUrl}}/api/v1/recipes/{{recipeSlug}}
+Authorization: Bearer {{accessToken}}
+
+PUT {{baseUrl}}/api/v1/recipes/{{recipeSlug}}
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+{
+  "description": "Updated description"
+}
+
+DELETE {{baseUrl}}/api/v1/recipes/{{recipeSlug}}
+Authorization: Bearer {{accessToken}}
+
+GET {{baseUrl}}/api/v1/recipes
+Authorization: Bearer {{accessToken}}
+
+GET {{baseUrl}}/api/v1/recipes/mine
+Authorization: Bearer {{accessToken}}

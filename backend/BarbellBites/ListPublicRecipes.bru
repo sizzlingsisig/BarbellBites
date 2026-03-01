@@ -1,0 +1,15 @@
+meta {
+  name: List Public Recipes
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{V1_API_LINK}}/recipes
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

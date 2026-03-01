@@ -1,0 +1,20 @@
+meta {
+  name: Get Recipe by Slug
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{V1_API_LINK}}/recipes/{{recipeSlug}}
+  body: none
+  auth: inherit
+}
+
+vars:pre-request {
+  recipeSlug: test-recipe
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

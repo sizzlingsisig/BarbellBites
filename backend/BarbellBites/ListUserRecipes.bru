@@ -1,0 +1,20 @@
+meta {
+  name: List User Recipes
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{V1_API_LINK}}/recipes/mine
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5OTg4MTFjNzc3ZGYyOWJhNTM4NDlkMyIsImlhdCI6MTc3MjQwNzA5MiwiZXhwIjoxNzcyNDA3OTkyfQ.S5iySKqOpKTl52upbUrzcIGLdJwv4c-SwR7yvrrM7uw
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

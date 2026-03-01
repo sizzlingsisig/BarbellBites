@@ -1,0 +1,35 @@
+meta {
+  name: Create Recipe
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{V1_API_LINK}}/recipes
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5OTg4MTFjNzc3ZGYyOWJhNTM4NDlkMyIsImlhdCI6MTc3MjQwNzA5MiwiZXhwIjoxNzcyNDA3OTkyfQ.S5iySKqOpKTl52upbUrzcIGLdJwv4c-SwR7yvrrM7uw
+}
+
+body:json {
+  {
+    "title": "Test Recipe",
+    "description": "A tasty test recipe",
+    "visibility": "public",
+    "tags": ["test", "easy"],
+    "ingredients": [
+      { "name": "Egg", "amount": "2", "unit": "pcs" },
+      { "name": "Salt", "amount": "1", "unit": "tsp" }
+    ],
+    "instructions": ["Crack eggs", "Add salt", "Cook"],
+    "nutrition": { "calories": 200, "protein": 12, "carbs": 2, "fats": 10 }
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
