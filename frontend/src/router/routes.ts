@@ -1,13 +1,15 @@
 import type { ComponentType } from 'react'
-import AuthPage from '../pages/AuthPage'
+import LoginPage from '../pages/LoginPage'
 import HomePage from '../pages/HomePage'
 import NotFoundPage from '../pages/NotFoundPage'
+import SignupPage from '../pages/SignupPage'
 // 1. IMPORT YOUR NEW PAGE
 import RecipePage from '../pages/RecipePage'
 
 export const ROUTE_PATHS = {
   HOME: '/',
-  AUTH: '/auth',
+  AUTH: '/login',
+  REGISTER: '/register',
   // 2. ADD THE PREVIEW PATH
   RECIPE_PREVIEW: '/recipe/preview',
   NOT_FOUND: '*',
@@ -60,9 +62,18 @@ export const appRoutes: AppRoute[] = [
   },
   {
     path: ROUTE_PATHS.AUTH,
-    component: AuthPage,
+    component: LoginPage,
     meta: {
-      title: 'BarbellBites | Auth',
+      title: 'BarbellBites | Login',
+      guestOnly: true,
+      layout: ROUTE_LAYOUTS.BLANK,
+    },
+  },
+  {
+    path: ROUTE_PATHS.REGISTER,
+    component: SignupPage,
+    meta: {
+      title: 'BarbellBites | Sign Up',
       guestOnly: true,
       layout: ROUTE_LAYOUTS.BLANK,
     },

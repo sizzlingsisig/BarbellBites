@@ -136,7 +136,12 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       set({ user, isAuthenticated: true })
     } catch (error) {
       get().clearAuth()
-      set({ error: getErrorMessage(error) })
+
+      if (error instanceof AxiosError && error.response?.status === 401) {
+        set({ error: null })
+      } else {
+        set({ error: getErrorMessage(error) })
+      }
     } finally {
       set({ isInitialized: true, isLoading: false })
     }

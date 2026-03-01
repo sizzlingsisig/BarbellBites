@@ -20,7 +20,7 @@ function HomePage() {
             </Text>
 
             <Group mt="sm">
-              <Button component={Link} to="/auth">
+              <Button component={Link} to="/login">
                 Go to Auth
               </Button>
             </Group>
