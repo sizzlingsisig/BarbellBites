@@ -1,17 +1,18 @@
 import type { ComponentType } from 'react'
 import LoginPage from '../pages/LoginPage'
-import HomePage from '../pages/HomePage'
+import RecipesPage from '../pages/RecipesPage'
+import RecipeDetailPage from '../pages/RecipeDetailPage'
+import FavoritesPage from '../pages/FavoritesPage'
 import NotFoundPage from '../pages/NotFoundPage'
 import SignupPage from '../pages/SignupPage'
-// 1. IMPORT YOUR NEW PAGE
-import RecipePage from '../pages/RecipePage'
 
 export const ROUTE_PATHS = {
   HOME: '/',
+  RECIPES: '/',
+  RECIPE_DETAIL: '/recipes/:recipeId',
+  FAVORITES: '/favorites',
   AUTH: '/login',
   REGISTER: '/register',
-  // 2. ADD THE PREVIEW PATH
-  RECIPE_PREVIEW: '/recipe/preview',
   NOT_FOUND: '*',
 } as const
 
@@ -52,10 +53,28 @@ export type AppRoute = {
 
 export const appRoutes: AppRoute[] = [
   {
-    path: ROUTE_PATHS.HOME,
-    component: HomePage,
+    path: ROUTE_PATHS.RECIPES,
+    component: RecipesPage,
     meta: {
-      title: 'BarbellBites | Home',
+      title: 'BarbellBites | Recipes',
+      requiresAuth: true,
+      layout: ROUTE_LAYOUTS.DEFAULT,
+    },
+  },
+  {
+    path: ROUTE_PATHS.RECIPE_DETAIL,
+    component: RecipeDetailPage,
+    meta: {
+      title: 'BarbellBites | View Recipe',
+      requiresAuth: true,
+      layout: ROUTE_LAYOUTS.DEFAULT,
+    },
+  },
+  {
+    path: ROUTE_PATHS.FAVORITES,
+    component: FavoritesPage,
+    meta: {
+      title: 'BarbellBites | Favorite Recipes',
       requiresAuth: true,
       layout: ROUTE_LAYOUTS.DEFAULT,
     },
@@ -76,17 +95,6 @@ export const appRoutes: AppRoute[] = [
       title: 'BarbellBites | Sign Up',
       guestOnly: true,
       layout: ROUTE_LAYOUTS.BLANK,
-    },
-  },
-  // 3. ADD THE RECIPE PREVIEW ROUTE
-  {
-    path: ROUTE_PATHS.RECIPE_PREVIEW,
-    component: RecipePage,
-    meta: {
-      title: 'BarbellBites | Recipe Preview',
-      // By leaving out requiresAuth and guestOnly, TypeScript infers this as a PublicRouteMeta.
-      // Anyone can view it without logging in!
-      layout: ROUTE_LAYOUTS.BLANK, 
     },
   },
   {
