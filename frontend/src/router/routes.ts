@@ -2,10 +2,14 @@ import type { ComponentType } from 'react'
 import AuthPage from '../pages/AuthPage'
 import HomePage from '../pages/HomePage'
 import NotFoundPage from '../pages/NotFoundPage'
+// 1. IMPORT YOUR NEW PAGE
+import RecipePage from '../pages/RecipePage'
 
 export const ROUTE_PATHS = {
   HOME: '/',
   AUTH: '/auth',
+  // 2. ADD THE PREVIEW PATH
+  RECIPE_PREVIEW: '/recipe/preview',
   NOT_FOUND: '*',
 } as const
 
@@ -61,6 +65,17 @@ export const appRoutes: AppRoute[] = [
       title: 'BarbellBites | Auth',
       guestOnly: true,
       layout: ROUTE_LAYOUTS.BLANK,
+    },
+  },
+  // 3. ADD THE RECIPE PREVIEW ROUTE
+  {
+    path: ROUTE_PATHS.RECIPE_PREVIEW,
+    component: RecipePage,
+    meta: {
+      title: 'BarbellBites | Recipe Preview',
+      // By leaving out requiresAuth and guestOnly, TypeScript infers this as a PublicRouteMeta.
+      // Anyone can view it without logging in!
+      layout: ROUTE_LAYOUTS.BLANK, 
     },
   },
   {
