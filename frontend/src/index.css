@@ -1,24 +1,10 @@
 
 @import "tailwindcss";
 
-:root {
-  --color-near-black: #010202;
-  --color-deep-surface: #0E1716;
-  --color-card-slate: #1E2320;
-  --color-border-slate: #2D332E;
-  --color-text-slate: #49514A;
-  --color-chrome-gray: #A9B0AF;
-  --color-white-ui: #FAFBFB;
-  --color-deep-teal: #0C373B;
-  --color-dark-teal: #115553;
-  --color-primary-teal: #079D84;
-  --color-glow-teal: #1DDFBD;
-  --color-neon-highlight: #7EFCF4;
-}
-
+/* All colors, typography, and shadows should be used via Tailwind and Mantine theme tokens. */
+/* Remove manual CSS variables and use theme/tailwind classes for consistency. */
 body {
-  background: var(--color-near-black);
-  color: var(--color-white-ui);
+  @apply bg-brand-900 text-brand-5;
 }
 
 * {
@@ -32,7 +18,6 @@ body,
 }
 
 .bb-search-input::placeholder {
-  color: var(--color-white-ui);
-  opacity: 0.8;
+  @apply text-brand-5 opacity-80;
 }
 
