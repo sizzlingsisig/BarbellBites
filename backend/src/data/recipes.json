@@ -1,0 +1,83 @@
+[
+  {
+    "owner": "USER_OBJECT_ID_1",
+    "title": "Anabolic Oats",
+    "description": "High-protein oatmeal for muscle gain.",
+    "image": "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=2000",
+    "visibility": "public",
+    "tags": ["breakfast", "muscle gain", "high protein"],
+    "ingredients": [
+      { "name": "Rolled Oats", "amount": "1/2", "unit": "cup" },
+      { "name": "Whey Protein", "amount": "1", "unit": "scoop" },
+      { "name": "Almond Milk", "amount": "1", "unit": "cup" },
+      { "name": "Chia Seeds", "amount": "1", "unit": "tbsp" },
+      { "name": "Blueberries", "amount": "1/4", "unit": "cup" }
+    ],
+    "instructions": [
+      "Combine oats and almond milk in a pot. Cook until thickened.",
+      "Stir in protein powder and chia seeds.",
+      "Top with blueberries and enjoy."
+    ],
+    "nutrition": {
+      "calories": 350,
+      "protein": 32,
+      "carbs": 40,
+      "fats": 8
+    },
+    "deletedAt": null
+  },
+  {
+    "owner": "USER_OBJECT_ID_2",
+    "title": "High-Protein Chicken Wrap",
+    "description": "Lean chicken breast wrapped with veggies for weight loss.",
+    "image": "https://images.unsplash.com/photo-1519864600265-abb23847ef2c?auto=format&fit=crop&q=80&w=2000",
+    "visibility": "public",
+    "tags": ["lunch", "weight loss", "high protein"],
+    "ingredients": [
+      { "name": "Chicken Breast", "amount": "4", "unit": "oz" },
+      { "name": "Whole Wheat Wrap", "amount": "1" },
+      { "name": "Lettuce", "amount": "1/2", "unit": "cup" },
+      { "name": "Tomato", "amount": "2", "unit": "slices" },
+      { "name": "Greek Yogurt", "amount": "2", "unit": "tbsp" }
+    ],
+    "instructions": [
+      "Grill chicken breast and slice.",
+      "Layer wrap with lettuce, tomato, chicken, and yogurt.",
+      "Roll up and serve."
+    ],
+    "nutrition": {
+      "calories": 400,
+      "protein": 38,
+      "carbs": 30,
+      "fats": 10
+    },
+    "deletedAt": null
+  },
+  {
+    "owner": "USER_OBJECT_ID_1",
+    "title": "Salmon Macro Bowl",
+    "description": "Heart-healthy salmon with macro-balanced sides.",
+    "image": "https://images.unsplash.com/photo-1464306076886-debede6bbf94?auto=format&fit=crop&q=80&w=2000",
+    "visibility": "public",
+    "tags": ["dinner", "heart health", "balanced"],
+    "ingredients": [
+      { "name": "Salmon Fillet", "amount": "5", "unit": "oz" },
+      { "name": "Brown Rice", "amount": "1/2", "unit": "cup" },
+      { "name": "Broccoli", "amount": "1/2", "unit": "cup" },
+      { "name": "Olive Oil", "amount": "1", "unit": "tsp" },
+      { "name": "Lemon", "amount": "1", "unit": "wedge" }
+    ],
+    "instructions": [
+      "Bake salmon fillet with olive oil and lemon.",
+      "Steam broccoli and cook rice.",
+      "Assemble bowl and serve."
+    ],
+    "nutrition": {
+      "calories": 480,
+      "protein": 40,
+      "carbs": 35,
+      "fats": 18
+    },
+    "deletedAt": null
+  }
+]
