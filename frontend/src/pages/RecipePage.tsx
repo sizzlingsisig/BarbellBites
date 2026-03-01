@@ -1,6 +1,7 @@
 import { Badge, Container, Group, Stack, Text, Title, Grid, ThemeIcon, Card, ActionIcon } from '@mantine/core'
 import { Link } from 'react-router-dom'
 
+import PLACEHOLDER_IMAGE from '../components/PlaceholderImage'
 // Mock Data - You will eventually fetch this from your backend API
 const recipe = {
   title: "Anabolic Garlic Butter Steak Bites",
@@ -38,15 +39,16 @@ function RecipePage() {
     <main className="min-h-screen bg-ink font-sans selection:bg-brand-500 selection:text-ink pb-20">
       
       {/* 1. HERO SECTION (Image & Title) */}
-      <section className="relative w-full h-[40vh] min-h-[400px]">
+      <section className="relative w-full h-[40vh] min-h-100">
         {/* Full width background image */}
         <img 
-          src={recipe.image} 
-          alt={recipe.title} 
+          src={recipe.image || PLACEHOLDER_IMAGE}
+          alt={recipe.title}
           className="absolute inset-0 w-full h-full object-cover"
+          onError={e => { e.currentTarget.src = PLACEHOLDER_IMAGE; }}
         />
         {/* Dark gradient overlay so the text pops */}
-        <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/60 to-transparent"></div>
+        <div className="absolute inset-0 bg-linear-to-t from-ink via-ink/60 to-transparent"></div>
 
         {/* Floating Navigation & Title overlay */}
         <Container size="lg" className="relative z-10 h-full flex flex-col justify-between pt-8 pb-12">
@@ -77,7 +79,7 @@ function RecipePage() {
         </Container>
       </section>
 
-      <Container size="lg" className="mt-[-2rem] relative z-20">
+      <Container size="lg" className="-mt-8 relative z-20">
         
         {/* 2. EXACT MACROS (The Barbell Bites special feature) */}
         <Grid gutter="md" className="mb-12">
