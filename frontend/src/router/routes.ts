@@ -7,7 +7,6 @@ import NotFoundPage from '../pages/NotFoundPage'
 import SignupPage from '../pages/SignupPage'
 
 export const ROUTE_PATHS = {
-  HOME: '/',
   RECIPES: '/',
   RECIPE_DETAIL: '/recipes/:recipeId',
   FAVORITES: '/favorites',
