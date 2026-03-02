@@ -10,41 +10,43 @@ function DefaultLayout({ children }: PropsWithChildren) {
   const logout = useAuthStore((state) => state.logout)
   const [searchTerm, setSearchTerm] = useState('')
   const theme = useMantineTheme()
+  const slate = theme.colors.slate
+  const brand = theme.colors.brand
 
   return (
-    <div style={{ minHeight: '100vh', background: theme.colors.brand[9] }}>
+    <div style={{ minHeight: '100vh', background: slate[6] }}>
       <div style={{ display: 'grid', minHeight: '100vh', gridTemplateColumns: '290px 1fr' }}>
-        <aside style={{ borderRight: `1px solid ${theme.colors.brand[7]}`, background: theme.colors.brand[6], padding: '1rem' }}>
+        <aside style={{ borderRight: `1px solid ${slate[3]}`, background: slate[5], padding: '1rem' }}>
           <Stack gap="lg" h="100%" justify="space-between">
             <Stack gap="sm">
 
-              <Title order={4} style={{ color: theme.colors.brand[5], fontFamily: theme.headings.fontFamily }}>BarbellBites</Title>
-              <Text size="sm" style={{ color: theme.colors.brand[5] }}>
+              <Title order={4} style={{ color: slate[0], fontFamily: theme.headings.fontFamily }}>BarbellBites</Title>
+              <Text size="sm" style={{ color: slate[0] }}>
                 {user?.email ?? 'Guest'}
               </Text>
 
 
-              <Button component={NavLink} to={ROUTE_PATHS.RECIPES} fullWidth styles={{root:{background: theme.colors.brand[0], color: theme.colors.brand[5], fontWeight: theme.headings.fontWeight, letterSpacing: '0.03em', boxShadow: theme.shadows.sm}}}>
+              <Button component={NavLink} to={ROUTE_PATHS.RECIPES} fullWidth styles={{root:{background: brand[4], color: slate[6], fontWeight: theme.headings.fontWeight, letterSpacing: '0.03em', boxShadow: theme.shadows.sm}}}>
                 Recipes
               </Button>
-              <Button component={NavLink} to={ROUTE_PATHS.FAVORITES} fullWidth styles={{root:{background: theme.colors.brand[2], color: theme.colors.brand[5], fontWeight: theme.headings.fontWeight, letterSpacing: '0.03em', boxShadow: theme.shadows.sm}}}>
+              <Button component={NavLink} to={ROUTE_PATHS.FAVORITES} fullWidth styles={{root:{background: brand[6], color: slate[0], fontWeight: theme.headings.fontWeight, letterSpacing: '0.03em', boxShadow: theme.shadows.sm}}}>
                 Favorite Recipes
               </Button>
 
-              <Divider my="xs" color={theme.colors.brand[7]} />
+              <Divider my="xs" color={slate[3]} />
 
 
               <TextInput
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.currentTarget.value)}
                 placeholder="Search recipes"
-                leftSection={<IconSearch size={16} color={theme.colors.brand[5]} />}
+                leftSection={<IconSearch size={16} color={slate[0]} />}
                 size="sm"
                 styles={{
                   input: {
-                    background: theme.colors.brand[8],
-                    color: theme.colors.brand[5],
-                    border: `1px solid ${theme.colors.brand[7]}`,
+                    background: slate[4],
+                    color: slate[0],
+                    border: `1px solid ${slate[3]}`,
                   },
                 }}
                 classNames={{input: 'bb-search-input'}}
@@ -52,13 +54,13 @@ function DefaultLayout({ children }: PropsWithChildren) {
 
 
               <Stack gap={6} mt="xs">
-                <Text fw={theme.headings.fontWeight} size="sm" style={{ color: theme.colors.brand[5] }}>
+                <Text fw={theme.headings.fontWeight} size="sm" style={{ color: slate[0] }}>
                   Meal Type
                 </Text>
-                <Checkbox label="Breakfast" size="sm" color="brand" styles={{label:{color:theme.colors.brand[5], fontWeight: theme.headings.fontWeight}}}/>
-                <Checkbox label="Lunch" size="sm" color="brand" styles={{label:{color:theme.colors.brand[5], fontWeight: theme.headings.fontWeight}}}/>
-                <Checkbox label="Dinner" size="sm" color="brand" styles={{label:{color:theme.colors.brand[5], fontWeight: theme.headings.fontWeight}}}/>
-                <Checkbox label="Snack" size="sm" color="brand" styles={{label:{color:theme.colors.brand[5], fontWeight: theme.headings.fontWeight}}}/>
+                <Checkbox label="Breakfast" size="sm" color="brand" styles={{label:{color:slate[0], fontWeight: theme.headings.fontWeight}}}/>
+                <Checkbox label="Lunch" size="sm" color="brand" styles={{label:{color:slate[0], fontWeight: theme.headings.fontWeight}}}/>
+                <Checkbox label="Dinner" size="sm" color="brand" styles={{label:{color:slate[0], fontWeight: theme.headings.fontWeight}}}/>
+                <Checkbox label="Snack" size="sm" color="brand" styles={{label:{color:slate[0], fontWeight: theme.headings.fontWeight}}}/>
               </Stack>
 
 
@@ -66,10 +68,10 @@ function DefaultLayout({ children }: PropsWithChildren) {
                 <Text fw={700} size="sm" className="text-(--color-white-ui)">
                   Dietary Preference
                 </Text>
-                <Checkbox label="High Protein" size="sm" color="brand" styles={{label:{color:theme.colors.brand[5], fontWeight: theme.headings.fontWeight}}}/>
-                <Checkbox label="Low Carb" size="sm" color="brand" styles={{label:{color:theme.colors.brand[5], fontWeight: theme.headings.fontWeight}}}/>
-                <Checkbox label="Keto" size="sm" color="brand" styles={{label:{color:theme.colors.brand[5], fontWeight: theme.headings.fontWeight}}}/>
-                <Checkbox label="Vegetarian" size="sm" color="brand" styles={{label:{color:theme.colors.brand[5], fontWeight: theme.headings.fontWeight}}}/>
+                <Checkbox label="High Protein" size="sm" color="brand" styles={{label:{color:slate[0], fontWeight: theme.headings.fontWeight}}}/>
+                <Checkbox label="Low Carb" size="sm" color="brand" styles={{label:{color:slate[0], fontWeight: theme.headings.fontWeight}}}/>
+                <Checkbox label="Keto" size="sm" color="brand" styles={{label:{color:slate[0], fontWeight: theme.headings.fontWeight}}}/>
+                <Checkbox label="Vegetarian" size="sm" color="brand" styles={{label:{color:slate[0], fontWeight: theme.headings.fontWeight}}}/>
               </Stack>
 
 
@@ -77,14 +79,14 @@ function DefaultLayout({ children }: PropsWithChildren) {
                 <Text fw={700} size="sm" className="text-(--color-white-ui)">
                   Health Goals
                 </Text>
-                <Checkbox label="Weight Loss" size="sm" color="brand" styles={{label:{color:theme.colors.brand[5], fontWeight: theme.headings.fontWeight}}}/>
-                <Checkbox label="Muscle Gain" size="sm" color="brand" styles={{label:{color:theme.colors.brand[5], fontWeight: theme.headings.fontWeight}}}/>
-                <Checkbox label="Maintain Weight" size="sm" color="brand" styles={{label:{color:theme.colors.brand[5], fontWeight: theme.headings.fontWeight}}}/>
-                <Checkbox label="Heart Health" size="sm" color="brand" styles={{label:{color:theme.colors.brand[5], fontWeight: theme.headings.fontWeight}}}/>
+                <Checkbox label="Weight Loss" size="sm" color="brand" styles={{label:{color:slate[0], fontWeight: theme.headings.fontWeight}}}/>
+                <Checkbox label="Muscle Gain" size="sm" color="brand" styles={{label:{color:slate[0], fontWeight: theme.headings.fontWeight}}}/>
+                <Checkbox label="Maintain Weight" size="sm" color="brand" styles={{label:{color:slate[0], fontWeight: theme.headings.fontWeight}}}/>
+                <Checkbox label="Heart Health" size="sm" color="brand" styles={{label:{color:slate[0], fontWeight: theme.headings.fontWeight}}}/>
               </Stack>
             </Stack>
 
-            <Button variant="default" onClick={() => void logout()} fullWidth styles={{root:{background:theme.colors.brand[0],color:theme.colors.brand[5],fontWeight:theme.headings.fontWeight}}}>
+            <Button variant="default" onClick={() => void logout()} fullWidth styles={{root:{background:brand[6],color:slate[0],fontWeight:theme.headings.fontWeight, border: `1px solid ${brand[8]}`}}}>
               Logout
             </Button>
           </Stack>

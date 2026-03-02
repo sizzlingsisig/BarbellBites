@@ -39,11 +39,11 @@ function LoginPage() {
               radius="md"
               styles={{
                 root: {
-                  background: 'linear-gradient(to right, #000000, #04585B)',
-                  border: '1px solid #079D84',
+                  background: 'linear-gradient(to right, var(--color-near-black), var(--color-deep-teal))',
+                  border: '1px solid var(--color-primary-teal)',
                 },
                 message: {
-                  color: '#FFFFFF',
+                  color: 'var(--color-white-ui)',
                   fontWeight: 600,
                 },
               }}
@@ -66,14 +66,14 @@ function LoginPage() {
               styles={{
                 input: {
                   backgroundColor: 'rgba(255, 255, 255, 0.04)',
-                  color: '#FFFFFF',
+                  color: 'var(--color-white-ui)',
                   border: '1px solid rgba(255, 255, 255, 0.14)',
                   boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
                   transition: 'all 0.3s ease',
                   '&:focus': {
-                    border: '1px solid #0CCEB0',
+                    border: '1px solid var(--color-glow-teal)',
                     backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                    boxShadow: '0 0 0 3px rgba(12, 206, 176, 0.2)',
+                    boxShadow: '0 0 0 3px rgba(29, 223, 189, 0.2)',
                   },
                   '&::placeholder': {
                     color: 'rgba(255, 255, 255, 0.4)',
@@ -96,21 +96,21 @@ function LoginPage() {
                 styles={{
                   input: {
                     backgroundColor: 'rgba(255, 255, 255, 0.04)',
-                    color: '#FFFFFF',
+                    color: 'var(--color-white-ui)',
                     border: '1px solid rgba(255, 255, 255, 0.14)',
                     boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
                     transition: 'all 0.3s ease',
                     '&:focus': {
-                      border: '1px solid #0CCEB0',
+                      border: '1px solid var(--color-glow-teal)',
                       backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                      boxShadow: '0 0 0 3px rgba(12, 206, 176, 0.2)',
+                      boxShadow: '0 0 0 3px rgba(29, 223, 189, 0.2)',
                     },
                     '&::placeholder': {
                       color: 'rgba(255, 255, 255, 0.4)',
                     },
                   },
                   innerInput: {
-                    color: '#FFFFFF',
+                    color: 'var(--color-white-ui)',
                   },
                 }}
               />
@@ -131,9 +131,9 @@ function LoginPage() {
             className="mt-3 font-bold tracking-wide uppercase text-sm transition-all duration-300 hover:brightness-110 hover:-translate-y-0.5 active:translate-y-0"
             styles={{
               root: {
-                backgroundImage: 'linear-gradient(135deg, #050707 0%, #0A4F46 45%, #0CCEB0 100%)',
-                border: '1px solid rgba(12, 206, 176, 0.45)',
-                color: '#FFFFFF',
+                backgroundImage: 'linear-gradient(135deg, var(--color-near-black) 0%, var(--color-deep-teal) 45%, var(--color-glow-teal) 100%)',
+                border: '1px solid rgba(29, 223, 189, 0.45)',
+                color: 'var(--color-white-ui)',
               },
             }}
           >
