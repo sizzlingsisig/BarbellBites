@@ -23,12 +23,16 @@ vars:pre-request {
 }
 
 script:post-response {
-  // Post Response Script for Login/Register
   const data = res.getBody();
   
-  if (data.status === 'success' && data.accessToken) {
-    // Capture the short-lived access token
+  // Adjusted to check for accessToken directly to avoid the previous mismatch
+  if (data && data.accessToken) {
     bru.setEnvVar("jwt_token", data.accessToken);
+    console.log("Token saved to environment successfully.");
+  } else if (data && data.token) {
+    // Fallback just in case your API returns 'token' instead of 'accessToken'
+    bru.setEnvVar("jwt_token", data.token);
+    console.log("Token saved to environment successfully.");
   }
 }
 
