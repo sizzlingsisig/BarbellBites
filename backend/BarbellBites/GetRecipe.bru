@@ -7,11 +7,7 @@ meta {
 get {
   url: {{V1_API_LINK}}/recipes/{{recipeSlug}}
   body: none
-  auth: inherit
-}
-
-vars:pre-request {
-  recipeSlug: test-recipe
+  auth: none
 }
 
 settings {

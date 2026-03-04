@@ -7,19 +7,14 @@ meta {
 post {
   url: {{V1_API_LINK}}/auth/login
   body: json
-  auth: inherit
+  auth: none
 }
 
 body:json {
   {
-    "name": "aaaaa",
-    "email": "aasdsd@test.com",
+    "email": "rc@test.com",
     "password": "lightweightbaby"
   }
-}
-
-vars:pre-request {
-  : 
 }
 
 script:post-response {

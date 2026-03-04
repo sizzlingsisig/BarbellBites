@@ -1,0 +1,34 @@
+meta {
+  name: Smoke List Public Search
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{V1_API_LINK}}/recipes?search={{smokeRunId}}
+  body: none
+  auth: none
+}
+
+script:post-response {
+  const status = res.getStatus();
+  if (status !== 200) {
+    throw new Error(`Expected 200, got ${status}`);
+  }
+
+  const data = res.getBody();
+  if (!Array.isArray(data)) {
+    throw new Error('Expected public recipes response to be an array');
+  }
+
+  const recipeSlug = bru.getEnvVar('recipeSlug');
+  const found = data.some((recipe) => String(recipe?.slug) === String(recipeSlug));
+  if (!found) {
+    throw new Error('Created recipe was not found in public search results');
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

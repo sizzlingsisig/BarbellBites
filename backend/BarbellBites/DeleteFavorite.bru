@@ -1,0 +1,15 @@
+meta {
+  name: Delete Favorite
+  type: http
+  seq: 9
+}
+
+delete {
+  url: {{V1_API_LINK}}/favorites/{{recipeId}}
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

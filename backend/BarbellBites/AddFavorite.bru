@@ -1,11 +1,11 @@
 meta {
-  name: List User Recipes
+  name: Add Favorite
   type: http
-  seq: 6
+  seq: 8
 }
 
-get {
-  url: {{V1_API_LINK}}/recipes/mine
+post {
+  url: {{V1_API_LINK}}/favorites/{{recipeId}}
   body: none
   auth: inherit
 }

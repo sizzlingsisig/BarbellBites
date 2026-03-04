@@ -21,7 +21,7 @@ body:json {
 script:post-response {
   const data = res.getBody();
   
-  if (data && data.token) {
+  if (data && data.accessToken) {
     bru.setEnvVar("jwt_token", data.accessToken);
     console.log("Token saved to environment successfully.");
   }

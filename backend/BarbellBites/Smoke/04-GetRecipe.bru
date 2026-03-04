@@ -1,0 +1,28 @@
+meta {
+  name: Smoke Get Recipe Public
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{V1_API_LINK}}/recipes/{{recipeSlug}}
+  body: none
+  auth: none
+}
+
+script:post-response {
+  const status = res.getStatus();
+  if (status !== 200) {
+    throw new Error(`Expected 200, got ${status}`);
+  }
+
+  const data = res.getBody();
+  if (!data?.slug || data.slug !== bru.getEnvVar('recipeSlug')) {
+    throw new Error('Recipe slug mismatch in get recipe response');
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

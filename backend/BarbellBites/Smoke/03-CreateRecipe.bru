@@ -1,7 +1,7 @@
 meta {
-  name: Create Recipe
+  name: Smoke Create Recipe
   type: http
-  seq: 1
+  seq: 3
 }
 
 post {
@@ -12,9 +12,8 @@ post {
 
 body:json {
   {
-    "title": "Chicken Power Bowl",
-    "description": "A tasty high-protein recipe for post-workout meals",
-    "image": "https://example.com/chicken-bowl.jpg",
+    "title": "{{smokeRecipeTitle}}",
+    "description": "A smoke-test recipe for Bruno CLI flow validation.",
     "visibility": "public",
     "diets": ["high-protein"],
     "mealTypes": ["dinner"],
@@ -34,19 +33,18 @@ body:json {
 }
 
 script:post-response {
-  const data = res.getBody();
-  
-  const recipe = data.data || data; 
-  
-  if (recipe && recipe.slug) {
-    bru.setEnvVar("recipeSlug", recipe.slug);
-    console.log(`Saved recipeSlug: ${recipe.slug}`);
+  const status = res.getStatus();
+  if (status !== 201) {
+    throw new Error(`Expected 201, got ${status}`);
   }
 
-  if (recipe && recipe._id) {
-    bru.setEnvVar("recipeId", recipe._id);
-    console.log(`Saved recipeId: ${recipe._id}`);
+  const data = res.getBody();
+  if (!data?._id || !data?.slug) {
+    throw new Error('Missing _id or slug in created recipe response');
   }
+
+  bru.setEnvVar('recipeId', data._id);
+  bru.setEnvVar('recipeSlug', data.slug);
 }
 
 settings {
