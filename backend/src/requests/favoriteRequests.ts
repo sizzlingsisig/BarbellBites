@@ -1,3 +1,9 @@
-// TODO: Define favorite request validation schemas.
-// TODO: Add favorite toggle params schema.
-// TODO: Add optional favorites list query schema.
+import { z } from 'zod';
+
+const objectIdSchema = z.string().regex(/^[a-f\d]{24}$/i, 'Invalid recipe id');
+
+export const favoriteParamsSchema = z.object({
+	params: z.object({
+		recipeId: objectIdSchema,
+	}),
+});

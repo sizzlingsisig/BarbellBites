@@ -1,4 +1,5 @@
 // src/services/authService.ts
+import mongoose from 'mongoose';
 import User from '../models/User.js';
 import {
   hashToken,
@@ -46,18 +47,33 @@ interface LoginUserInput {
 export const registerUser = async (data: RegisterUserInput): Promise<AuthResult> => {
   const { name, email, password } = data;
 
-  const userExists = await User.findOne({ email });
-  if (userExists) {
-    throw new AuthServiceError('EMAIL_ALREADY_EXISTS', 'An account with this email already exists.');
-  }
-
-  const user = await User.create({ name, email, password });
-
-  const accessToken = signAccessToken(user._id.toString());
-  const refreshToken = signRefreshToken(user._id.toString());
+  const userId = new mongoose.Types.ObjectId();
+  const accessToken = signAccessToken(userId.toString());
+  const refreshToken = signRefreshToken(userId.toString());
   const refreshTokenHash = hashToken(refreshToken);
 
-  await User.findByIdAndUpdate(user._id, { refreshToken: refreshTokenHash });
+  let user;
+  try {
+    user = await User.create({
+      _id: userId,
+      name,
+      email,
+      password,
+      refreshToken: refreshTokenHash,
+    });
+  } catch (error) {
+    const isDuplicateEmail =
+      typeof error === 'object' &&
+      error !== null &&
+      'code' in error &&
+      (error as { code?: number }).code === 11000;
+
+    if (isDuplicateEmail) {
+      throw new AuthServiceError('EMAIL_ALREADY_EXISTS', 'An account with this email already exists.');
+    }
+
+    throw error;
+  }
 
   return {
     accessToken,

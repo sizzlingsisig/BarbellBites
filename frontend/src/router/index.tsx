@@ -37,7 +37,7 @@ function RouteElement({ meta, component }: RouteElementProps) {
   }
 
   if (meta?.guestOnly && isAuthenticated) {
-    return <Navigate to={ROUTE_PATHS.HOME} replace />
+    return <Navigate to={ROUTE_PATHS.RECIPES} replace />
   }
 
   const layoutKey = meta?.layout ?? ROUTE_LAYOUTS.DEFAULT
