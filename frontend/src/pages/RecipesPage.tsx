@@ -277,6 +277,7 @@ function RecipesPage() {
               id={recipe.slug}
               name={recipe.title}
               description={recipe.description}
+              image={recipe.image}
               mealType={recipe.mealTypes?.[0] ?? recipe.visibility}
               goal={recipe.diets?.[0] ?? recipe.cuisines?.[0] ?? 'General'}
               visibility={recipe.visibility}

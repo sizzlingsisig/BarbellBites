@@ -5,6 +5,7 @@ export type FavoriteRecipe = {
 	slug: string
 	title: string
 	description?: string
+	image?: string
 	mealTypes?: string[]
 	visibility?: 'public' | 'private' | 'unlisted'
 	diets?: string[]

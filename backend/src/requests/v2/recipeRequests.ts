@@ -1,6 +1,12 @@
 import { z } from 'zod'
 import { RECIPE_CUISINES, RECIPE_DIETS, RECIPE_MEAL_TYPES } from '../../constants/recipeTaxonomy.js'
 
+const imageSourceSchema = z
+	.string()
+	.refine((value) => /^(https?:\/\/.+|data:image\/[a-zA-Z0-9.+-]+;base64,.+)$/.test(value), {
+		message: 'Image must be a valid URL or data image string',
+	})
+
 const ingredientSchema = z.object({
 	name: z.string().min(1, 'Ingredient name is required'),
 	amount: z.string().min(1, 'Amount is required'),
@@ -17,8 +23,8 @@ const nutritionSchema = z.object({
 const recipeBodyBaseSchemaV2 = z.object({
 	title: z.string().min(3, 'Title must be at least 3 characters long'),
 	description: z.string().min(10, 'Description must be at least 10 characters long'),
-	photo: z.string().url().optional(),
-	image: z.string().url().optional(),
+	photo: imageSourceSchema.optional(),
+	image: imageSourceSchema.optional(),
 	visibility: z.enum(['public', 'private', 'unlisted']).default('public'),
 	diets: z.array(z.enum(RECIPE_DIETS)).optional(),
 	mealTypes: z.array(z.enum(RECIPE_MEAL_TYPES)).optional(),

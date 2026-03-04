@@ -5,6 +5,7 @@ import {
   Box,
   Button,
   Divider,
+  FileInput,
   Group,
   Modal,
   Select,
@@ -34,6 +35,7 @@ type InstructionRow = {
 type CreateFormState = {
   title: string
   description: string
+  image: string
   visibility: 'public' | 'private'
   diets: string[]
   mealTypes: string[]
@@ -63,6 +65,7 @@ type CreateRecipeModalProps = {
 const initialFormState: CreateFormState = {
   title: '',
   description: '',
+  image: '',
   visibility: 'public',
   diets: [],
   mealTypes: [],
@@ -87,6 +90,7 @@ const nextRowId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}
 const buildFormStateFromPayload = (payload: RecipeMutationPayload): CreateFormState => ({
   title: payload.title ?? '',
   description: payload.description ?? '',
+  image: payload.image ?? '',
   visibility: payload.visibility ?? 'public',
   diets: payload.diets ?? [],
   mealTypes: payload.mealTypes ?? [],
@@ -223,6 +227,20 @@ function CreateRecipeModal({ opened, loading, error, onClose, onSubmit, mode = '
     })
   }
 
+  const handleImageFileChange = (file: File | null) => {
+    if (!file) {
+      setForm((prev) => ({ ...prev, image: '' }))
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = typeof reader.result === 'string' ? reader.result : ''
+      setForm((prev) => ({ ...prev, image: result }))
+    }
+    reader.readAsDataURL(file)
+  }
+
   const nutrition = useMemo(
     () => ({
       calories: Number(form.calories),
@@ -262,6 +280,10 @@ function CreateRecipeModal({ opened, loading, error, onClose, onSubmit, mode = '
     return {
       title: form.title.trim().length >= 3 ? '' : 'Title must be at least 3 characters long.',
       description: form.description.trim().length >= 10 ? '' : 'Description must be at least 10 characters long.',
+      image:
+        !form.image.trim() || /^(https?:\/\/.+|data:image\/[a-zA-Z0-9.+-]+;base64,.+)$/.test(form.image.trim())
+          ? ''
+          : 'Image must be a URL or an uploaded image file.',
       prepTime: nonNegative(Number(form.prepTime)) ? '' : 'Prep time must be non-negative.',
       cookTime: nonNegative(Number(form.cookTime)) ? '' : 'Cook time must be non-negative.',
       totalTime: nonNegative(totalTime) ? '' : 'Total time is invalid.',
@@ -285,7 +307,7 @@ function CreateRecipeModal({ opened, loading, error, onClose, onSubmit, mode = '
   const isStepValid = useMemo(() => {
     switch (step) {
       case 0:
-        return !fieldErrors.title && !fieldErrors.description
+        return !fieldErrors.title && !fieldErrors.description && !fieldErrors.image
       case 1:
         return true
       case 2:
@@ -306,6 +328,7 @@ function CreateRecipeModal({ opened, loading, error, onClose, onSubmit, mode = '
       Boolean(
         fieldErrors.title ||
           fieldErrors.description ||
+          fieldErrors.image ||
           fieldErrors.prepTime ||
           fieldErrors.cookTime ||
           fieldErrors.totalTime ||
@@ -322,7 +345,7 @@ function CreateRecipeModal({ opened, loading, error, onClose, onSubmit, mode = '
   )
 
   const stepHasError = (stepIndex: number) => {
-    if (stepIndex === 0) return Boolean(fieldErrors.title || fieldErrors.description)
+    if (stepIndex === 0) return Boolean(fieldErrors.title || fieldErrors.description || fieldErrors.image)
     if (stepIndex === 1) return false
     if (stepIndex === 2) return Boolean(fieldErrors.prepTime || fieldErrors.cookTime || fieldErrors.totalTime || fieldErrors.servings || fieldErrors.servingSize)
     if (stepIndex === 3) return Boolean(fieldErrors.ingredients || fieldErrors.instructions)
@@ -339,6 +362,7 @@ function CreateRecipeModal({ opened, loading, error, onClose, onSubmit, mode = '
     await onSubmit({
       title: form.title,
       description: form.description,
+      image: form.image.trim() || undefined,
       visibility: form.visibility,
       prepTime: Number(form.prepTime),
       cookTime: Number(form.cookTime),
@@ -440,6 +464,21 @@ function CreateRecipeModal({ opened, loading, error, onClose, onSubmit, mode = '
               <Stack gap="sm" mt="sm">
                 <TextInput label="Recipe Title" value={form.title} onChange={updateFormField('title')} error={attempted ? fieldErrors.title : undefined} required autoFocus />
                 <TextInput label="Recipe Description" value={form.description} onChange={updateFormField('description')} error={attempted ? fieldErrors.description : undefined} required />
+                <TextInput
+                  label="Image URL"
+                  placeholder="https://example.com/my-recipe.jpg"
+                  value={form.image}
+                  onChange={updateFormField('image')}
+                  error={attempted ? fieldErrors.image : undefined}
+                />
+                <FileInput
+                  label="Or upload one image"
+                  placeholder="Choose image file"
+                  accept="image/*"
+                  clearable
+                  value={null}
+                  onChange={handleImageFileChange}
+                />
                 <Select
                   label="Visibility"
                   data={[

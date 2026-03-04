@@ -3,6 +3,7 @@ import api from './axios'
 export type RecipeMutationPayload = {
   title: string
   description?: string
+  image?: string
   visibility: 'public' | 'private'
   prepTime?: number
   cookTime?: number
@@ -37,6 +38,7 @@ export type RecipeListItem = {
   slug: string
   title: string
   description?: string
+  image?: string
   visibility: 'public' | 'private' | 'unlisted'
   diets?: string[]
   mealTypes?: string[]

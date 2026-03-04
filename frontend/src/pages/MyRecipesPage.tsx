@@ -65,6 +65,7 @@ function MyRecipesPage() {
 				id: recipe.slug,
 				name: recipe.title,
 				description: recipe.description,
+				image: recipe.image,
 				mealType: recipe.mealTypes?.[0] ?? recipe.visibility,
 				goal: recipe.diets?.[0] ?? recipe.cuisines?.[0] ?? 'General',
 				visibility: recipe.visibility,
@@ -123,6 +124,7 @@ function MyRecipesPage() {
 			setEditInitialValues({
 				title: detail?.title ?? recipe.title,
 				description: detail?.description ?? recipe.description ?? '',
+				image: detail?.image ?? '',
 				visibility: detail?.visibility === 'private' ? 'private' : 'public',
 				prepTime: detail?.prepTime ?? 0,
 				cookTime: detail?.cookTime ?? 0,

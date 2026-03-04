@@ -57,6 +57,7 @@ function FavoritesPage() {
 			recipeId: recipe._id,
 			name: recipe.title,
 			description: recipe.description,
+			image: recipe.image,
 			mealType: recipe.mealTypes?.[0] ?? recipe.visibility ?? 'Recipe',
 			goal: recipe.diets?.[0] ?? recipe.cuisines?.[0] ?? 'General',
 			visibility: recipe.visibility ?? 'public',
@@ -167,6 +168,7 @@ function FavoritesPage() {
 							id={recipe.id}
 							name={recipe.name}
 							description={recipe.description}
+							image={recipe.image}
 							mealType={recipe.mealType}
 							goal={recipe.goal}
 							visibility={recipe.visibility}
