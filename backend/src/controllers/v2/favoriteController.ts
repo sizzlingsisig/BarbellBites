@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import * as favoriteService from '../services/favoriteService.js';
-import { AppError } from '../utils/AppError.js';
-import { HttpStatusCode } from '../constants/httpStatusCodes.js';
+import * as favoriteService from '../../services/v2/favoriteService.js';
+import { AppError } from '../../utils/AppError.js';
+import { HttpStatusCode } from '../../constants/httpStatusCodes.js';
 
 export async function listFavorites(req: Request, res: Response, next: NextFunction) {
 	try {

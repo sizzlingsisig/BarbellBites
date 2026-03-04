@@ -1,9 +1,9 @@
 import 'dotenv/config'
 import mongoose from 'mongoose'
 import { connectDB } from '../config/db.js'
-import User from '../models/User.js'
-import { Recipe } from '../models/Recipe.js'
-import { Favorite } from '../models/Favorite.js'
+import User from '../models/v2/User.js'
+import { Recipe } from '../models/v2/Recipe.js'
+import { Favorite } from '../models/v2/Favorite.js'
 
 async function resetAndSeedDatabase() {
   await connectDB()

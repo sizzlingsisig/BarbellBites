@@ -1,7 +1,7 @@
 // src/middleware/authMiddleware.ts
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import User, { type IUser } from '../models/User.js';
+import User, { type IUser } from '../models/v1/User.js';
 import { AppError } from '../utils/AppError.js';
 import { HttpStatusCode } from '../constants/httpStatusCodes.js';
 

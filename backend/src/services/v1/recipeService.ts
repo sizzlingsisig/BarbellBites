@@ -1,5 +1,5 @@
-import { Recipe, IRecipe } from '../models/Recipe.js';
-import { RECIPE_DIETS } from '../constants/recipeTaxonomy.js';
+import { Recipe, IRecipe } from '../../models/v1/Recipe.js';
+import { RECIPE_DIETS } from '../../constants/recipeTaxonomy.js';
 
 type RecipePayload = Partial<IRecipe> & {
 	tags?: string[];
@@ -47,6 +47,10 @@ function normalizeRecipePayload(data: RecipePayload): Partial<IRecipe> {
 		next.nutritionPerServing = next.nutrition;
 	}
 
+	if (!next.photo && next.image) {
+		next.photo = next.image;
+	}
+
 	if (next.totalTime == null && (next.prepTime != null || next.cookTime != null)) {
 		next.totalTime = (next.prepTime ?? 0) + (next.cookTime ?? 0);
 	}
@@ -90,18 +94,15 @@ function buildRecipeFilters(query: RecipeListQuery): MongoFilter {
 	return filter;
 }
 
-// Create a new recipe
 export async function createRecipe(userId: string, data: Partial<IRecipe>) {
 	const normalizedData = normalizeRecipePayload(data as RecipePayload);
 	const recipe = await Recipe.create({ ...normalizedData, owner: userId });
 	return recipe;
 }
 
-// Get a recipe by slug (public or owned)
 export async function getRecipeById(slug: string, userId?: string) {
 	const query: MongoFilter = { slug, deletedAt: null };
 	if (userId) {
-		// Allow owner to see private recipes
 		query.$or = [
 			{ visibility: 'public' },
 			{ owner: userId }
@@ -112,7 +113,6 @@ export async function getRecipeById(slug: string, userId?: string) {
 	return Recipe.findOne(query);
 }
 
-// Update a recipe (must own)
 export async function updateRecipe(userId: string, slug: string, data: Partial<IRecipe>) {
 	const recipe = await Recipe.findOne({ slug, owner: userId, deletedAt: null });
 	if (!recipe) return null;
@@ -122,7 +122,6 @@ export async function updateRecipe(userId: string, slug: string, data: Partial<I
 	return recipe;
 }
 
-// Soft delete a recipe (must own)
 export async function softDeleteRecipe(userId: string, slug: string) {
 	const recipe = await Recipe.findOne({ slug, owner: userId, deletedAt: null });
 	if (!recipe) return null;
@@ -131,7 +130,6 @@ export async function softDeleteRecipe(userId: string, slug: string) {
 	return recipe;
 }
 
-// Undo soft delete a recipe (must own)
 export async function undoDeleteRecipe(userId: string, slug: string) {
 	const recipe = await Recipe.findOne({ slug, owner: userId, deletedAt: { $ne: null } });
 	if (!recipe) return null;
@@ -139,8 +137,6 @@ export async function undoDeleteRecipe(userId: string, slug: string) {
 	await recipe.save();
 	return recipe;
 }
-
-// List public recipes (browse/search/filter)
 
 export async function listPublicRecipes(query: RecipeListQuery) {
 	const filter: MongoFilter = {
@@ -151,7 +147,6 @@ export async function listPublicRecipes(query: RecipeListQuery) {
 	return Recipe.find(filter).limit(50).sort({ createdAt: -1 });
 }
 
-// List user's own recipes
 export async function listUserRecipes(userId: string, query: RecipeListQuery) {
 	const filter: MongoFilter = {
 		...buildRecipeFilters(query),

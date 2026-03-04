@@ -1,7 +1,7 @@
-import { Favorite } from '../models/Favorite.js';
-import { Recipe } from '../models/Recipe.js';
-import { AppError } from '../utils/AppError.js';
-import { HttpStatusCode } from '../constants/httpStatusCodes.js';
+import { Favorite } from '../../models/v2/Favorite.js';
+import { Recipe } from '../../models/v2/Recipe.js';
+import { AppError } from '../../utils/AppError.js';
+import { HttpStatusCode } from '../../constants/httpStatusCodes.js';
 
 export async function listFavorites(userId: string) {
 	const favorites = await Favorite.find({ userId })

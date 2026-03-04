@@ -1,4 +1,4 @@
-import { Recipe } from '../models/Recipe.js'
+import { Recipe } from '../models/v2/Recipe.js'
 import { RECIPE_CUISINES, RECIPE_DIETS, RECIPE_MEAL_TYPES } from '../constants/recipeTaxonomy.js'
 import type { Migration } from './types.js'
 

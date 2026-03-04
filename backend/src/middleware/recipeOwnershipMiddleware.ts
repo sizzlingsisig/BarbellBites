@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { HttpStatusCode } from '../constants/httpStatusCodes.js';
-import { Recipe } from '../models/Recipe.js';
+import { Recipe } from '../models/v1/Recipe.js';
 import { AppError } from '../utils/AppError.js';
 
 export const checkRecipeOwner = async (req: Request, _res: Response, next: NextFunction) => {
