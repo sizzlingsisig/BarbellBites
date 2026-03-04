@@ -1,0 +1,27 @@
+meta {
+  name: Edge Invalid Favorite Id
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{V2_API_LINK}}/favorites/not-a-valid-object-id
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{edgeOwnerToken}}
+}
+
+script:post-response {
+  const status = res.getStatus();
+  if (status !== 400) {
+    throw new Error(`Expected 400, got ${status}`);
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

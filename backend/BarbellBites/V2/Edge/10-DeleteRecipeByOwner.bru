@@ -1,0 +1,26 @@
+meta {
+  name: Edge Delete Recipe By Owner
+  type: http
+  seq: 10
+}
+
+delete {
+  url: {{V2_API_LINK}}/recipes/{{edgeRecipeSlug}}
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{edgeOwnerToken}}
+}
+
+script:post-response {
+  const status = res.getStatus();
+  if (status !== 204) {
+    throw new Error(`Expected 204, got ${status}`);
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

@@ -1,0 +1,22 @@
+meta {
+  name: Smoke Delete Recipe
+  type: http
+  seq: 12
+}
+
+delete {
+  url: {{V2_API_LINK}}/recipes/{{recipeSlug}}
+  auth: inherit
+}
+
+script:post-response {
+  const status = res.getStatus();
+  if (status !== 204) {
+    throw new Error(`Expected 204, got ${status}`);
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
