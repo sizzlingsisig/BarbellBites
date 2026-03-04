@@ -1,7 +1,31 @@
 import api from './axios'
 
+export type FavoriteRecipe = {
+	_id: string
+	slug: string
+	title: string
+	description?: string
+	mealTypes?: string[]
+	visibility?: 'public' | 'private' | 'unlisted'
+	diets?: string[]
+	cuisines?: string[]
+	totalTime?: number
+	servings?: number
+	nutritionPerServing?: {
+		calories: number
+		protein: number
+		carbs: number
+		fats: number
+	}
+}
+
+export type FavoriteItem = {
+	_id: string
+	recipeId?: FavoriteRecipe
+}
+
 export const getFavorites = async () => {
-	const response = await api.get('/favorites')
+	const response = await api.get<FavoriteItem[]>('/favorites')
 	return response.data
 }
 

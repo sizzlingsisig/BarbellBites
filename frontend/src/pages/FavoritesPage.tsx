@@ -1,25 +1,15 @@
 import { useEffect, useState } from 'react'
-import { Badge, Card, Group, Loader, Stack, Text, Title } from '@mantine/core'
-import { Link } from 'react-router-dom'
-import { getFavorites } from '../api/favoritesApi'
-
-type FavoriteRecipe = {
-  _id: string
-  slug: string
-  title: string
-  mealTypes?: string[]
-  visibility?: 'public' | 'private' | 'unlisted'
-}
-
-type FavoriteItem = {
-  _id: string
-  recipeId?: FavoriteRecipe
-}
+import { ActionIcon, Loader, Stack, Text, Title, Grid } from '@mantine/core'
+import { IconHeartFilled } from '@tabler/icons-react'
+import { RecipeCard } from '../components/RecipeCard'
+import { getFavorites, removeFavorite, type FavoriteItem, type FavoriteRecipe } from '../api/favoritesApi'
+import { notifyError, notifySuccess } from '../services/notify'
 
 function FavoritesPage() {
 	const [favorites, setFavorites] = useState<FavoriteItem[]>([])
 	const [loading, setLoading] = useState(false)
 	const [error, setError] = useState('')
+	const [removingId, setRemovingId] = useState<string | null>(null)
 
 	useEffect(() => {
 		const loadFavorites = async () => {
@@ -39,77 +29,167 @@ function FavoritesPage() {
 		void loadFavorites()
 	}, [])
 
+	const handleRemoveFavorite = async (recipeId: string, recipeTitle: string) => {
+		try {
+			setRemovingId(recipeId)
+			await removeFavorite(recipeId)
+			setFavorites((prev) => prev.filter((item) => item.recipeId?._id !== recipeId))
+			notifySuccess({
+				title: 'Removed from Favorites',
+				message: `${recipeTitle} was removed from favorites.`,
+			})
+		} catch (err: unknown) {
+			const message = err instanceof Error ? err.message : 'Failed to remove favorite'
+			notifyError({
+				title: 'Favorites Failed',
+				message,
+			})
+		} finally {
+			setRemovingId(null)
+		}
+	}
+
 	const favoriteRecipes = favorites
 		.map((favorite) => favorite.recipeId)
 		.filter((recipe): recipe is FavoriteRecipe => Boolean(recipe && recipe.slug && recipe.title))
 		.map((recipe) => ({
 			id: recipe.slug,
+			recipeId: recipe._id,
 			name: recipe.title,
+			description: recipe.description,
 			mealType: recipe.mealTypes?.[0] ?? recipe.visibility ?? 'Recipe',
+			goal: recipe.diets?.[0] ?? recipe.cuisines?.[0] ?? 'General',
+			visibility: recipe.visibility ?? 'public',
+			totalTime: recipe.totalTime,
+			servings: recipe.servings,
+			calories: recipe.nutritionPerServing?.calories,
 		}))
 
 	return (
-		<div className="mx-auto max-w-5xl px-4 py-8">
-			<Stack gap="lg">
-				<div className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl">
-					<Text className="text-paper font-black uppercase tracking-[0.15em] text-sm mb-3">
-						Barbell <span className="text-brand-500">Bites</span>
-					</Text>
-					<Title order={2} className="text-paper font-bold text-3xl mb-2">Favorite Recipes</Title>
-					<Text className="text-paper/70 text-sm">Your saved recipes are listed here.</Text>
-				</div>
+		<div className="h-full flex flex-col gap-6">
+			<div
+				className="relative rounded-2xl overflow-hidden p-6"
+				style={{
+					background: 'rgba(255,255,255,0.04)',
+					backdropFilter: 'blur(32px) saturate(180%)',
+					WebkitBackdropFilter: 'blur(32px) saturate(180%)',
+					border: '1px solid rgba(255,255,255,0.09)',
+					boxShadow: '0 4px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.06)',
+				}}
+			>
+				<div
+					className="absolute top-0 left-8 right-8 h-px"
+					style={{ background: 'linear-gradient(90deg, transparent, rgba(0,200,150,0.5), transparent)' }}
+				/>
 
-				<Stack gap="sm">
-					{loading && (
+				<div
+					className="absolute -top-10 -right-10 w-48 h-48 rounded-full pointer-events-none"
+					style={{ background: 'radial-gradient(circle, rgba(0,200,150,0.12) 0%, transparent 70%)', filter: 'blur(30px)' }}
+				/>
+
+				<div className="relative z-10 flex items-end justify-between">
+					<div>
+						<Text
+							size="xs"
+							style={{
+								color: '#00c896',
+								fontWeight: 700,
+								letterSpacing: '0.14em',
+								textTransform: 'uppercase',
+								marginBottom: '6px',
+							}}
+						>
+							<span>Barbell Bites</span>
+						</Text>
+						<Title
+							order={2}
+							style={{
+								color: 'rgba(255,255,255,0.95)',
+								fontWeight: 800,
+								fontSize: '1.75rem',
+								letterSpacing: '-0.02em',
+								lineHeight: 1.2,
+								marginBottom: '6px',
+							}}
+						>
+							Favorite Recipes
+						</Title>
+						<Text size="sm" style={{ color: 'rgba(255,255,255,0.45)', letterSpacing: '0.01em' }}>
+							Your saved recipes are listed here.
+						</Text>
+					</div>
+
+					<div
+						className="flex items-center gap-2 px-4 py-2 rounded-xl"
+						style={{
+							background: 'rgba(0,200,150,0.08)',
+							border: '1px solid rgba(0,200,150,0.2)',
+						}}
+					>
+						<div
+							className="w-1.5 h-1.5 rounded-full"
+							style={{ background: '#00c896', boxShadow: '0 0 6px #00c896' }}
+						/>
+						<Text
+							size="xs"
+							style={{ color: '#1DDFBD', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}
+						>
+							{favoriteRecipes.length} Favorites
+						</Text>
+					</div>
+				</div>
+			</div>
+
+			<Grid gutter="md" className="flex-1">
+				{loading && (
+					<Grid.Col span={12}>
 						<div className="py-6 flex items-center justify-center">
 							<Loader size="sm" />
 						</div>
-					)}
+					</Grid.Col>
+				)}
 
-					{!loading && error && (
-						<Text className="text-red-300 text-sm">{error}</Text>
-					)}
+				{!loading && error && (
+					<Grid.Col span={12}>
+						<Text c="red.5">{error}</Text>
+					</Grid.Col>
+				)}
 
-					{!loading && !error && favoriteRecipes.length === 0 && (
-						<Text className="text-paper/70 text-sm">No favorite recipes yet.</Text>
-					)}
+				{!loading && !error && favoriteRecipes.length === 0 && (
+					<Grid.Col span={12}>
+						<Text c="dimmed">No favorite recipes yet.</Text>
+					</Grid.Col>
+				)}
 
-					{favoriteRecipes.map((recipe) => (
-						<Card
-							key={recipe.id}
-							withBorder
-							radius="lg"
-							component={Link}
-							to={`/recipes/${recipe.id}`}
-							className="no-underline text-paper transition-all duration-200 relative overflow-hidden active:scale-[0.98] active:translate-y-px"
-							style={{
-								background: 'rgba(255,255,255,0.045)',
-								backdropFilter: 'blur(24px) saturate(180%)',
-								WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-								border: '1px solid rgba(255,255,255,0.09)',
-								boxShadow: '0 8px 32px rgba(0,0,0,0.32), inset 0 1px 0 rgba(255,255,255,0.06)',
-							}}
-							onMouseDown={e => {
-								e.currentTarget.style.boxShadow = `0 2px 12px rgba(0,0,0,0.5), 0 0 0 3px rgba(0,200,150,0.12), inset 0 2px 6px rgba(0,0,0,0.3)`;
-								e.currentTarget.style.borderColor = 'rgba(0,200,150,0.6)';
-							}}
-							onMouseUp={e => {
-								e.currentTarget.style.boxShadow = '0 8px 32px rgba(0,0,0,0.32), inset 0 1px 0 rgba(255,255,255,0.06)';
-								e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)';
-							}}
-							onMouseLeave={e => {
-								e.currentTarget.style.boxShadow = '0 8px 32px rgba(0,0,0,0.32), inset 0 1px 0 rgba(255,255,255,0.06)';
-								e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)';
-							}}
-						>
-							<Group justify="space-between" align="center">
-								<Text fw={600} className="text-paper font-bold">{recipe.name}</Text>
-								<Badge variant="light" className="bg-brand-500/10 text-brand-400 border-brand-500/20">{recipe.mealType}</Badge>
-							</Group>
-						</Card>
-					))}
-				</Stack>
-			</Stack>
+				{favoriteRecipes.map((recipe) => (
+					<Grid.Col key={recipe.id} span={{ base: 12, sm: 6, md: 4 }}>
+						<RecipeCard
+							id={recipe.id}
+							name={recipe.name}
+							description={recipe.description}
+							mealType={recipe.mealType}
+							goal={recipe.goal}
+							visibility={recipe.visibility}
+							totalTime={recipe.totalTime}
+							servings={recipe.servings}
+							calories={recipe.calories}
+							actionMenu={
+								<ActionIcon
+									variant="subtle"
+									color="red"
+									aria-label="Remove favorite"
+									loading={removingId === recipe.recipeId}
+									onClick={() => {
+										void handleRemoveFavorite(recipe.recipeId, recipe.name)
+									}}
+								>
+									<IconHeartFilled size={16} />
+								</ActionIcon>
+							}
+						/>
+					</Grid.Col>
+				))}
+			</Grid>
 		</div>
 	)
 }

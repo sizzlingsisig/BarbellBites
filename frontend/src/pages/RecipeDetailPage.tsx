@@ -9,6 +9,7 @@ import { getRecipeById, updateRecipe, type RecipeMutationPayload } from '../api/
 import { useAuthStore } from '../store/authStore'
 import { notifyError, notifySuccess } from '../services/notify'
 import { useRecipeDeleteWithUndo } from '../hooks/useRecipeDeleteWithUndo'
+import { addFavorite, getFavorites, removeFavorite } from '../api/favoritesApi'
 
 type RecipeResponse = {
   _id?: string
@@ -98,6 +99,8 @@ function RecipeDetailPage() {
   const [editOpen, setEditOpen] = useState(false)
   const [editLoading, setEditLoading] = useState(false)
   const [editError, setEditError] = useState('')
+  const [isFavorite, setIsFavorite] = useState(false)
+  const [favoriteLoading, setFavoriteLoading] = useState(false)
   const initialTitleRef = useRef(document.title)
   const { openDeleteModal, modalProps } = useRecipeDeleteWithUndo()
 
@@ -143,6 +146,25 @@ function RecipeDetailPage() {
 
     document.title = 'BarbellBites | View Recipe'
   }, [loading, error, recipe?.title])
+
+  useEffect(() => {
+    const loadFavoriteState = async () => {
+      if (!recipe?._id) {
+        setIsFavorite(false)
+        return
+      }
+
+      try {
+        const favorites = await getFavorites()
+        const exists = favorites.some((favorite) => favorite.recipeId?._id === recipe._id)
+        setIsFavorite(exists)
+      } catch {
+        setIsFavorite(false)
+      }
+    }
+
+    void loadFavoriteState()
+  }, [recipe?._id])
 
   useEffect(() => {
     return () => {
@@ -207,6 +229,40 @@ function RecipeDetailPage() {
       })
     } finally {
       setEditLoading(false)
+    }
+  }
+
+  const handleToggleFavorite = async () => {
+    if (!recipe?._id) {
+      return
+    }
+
+    try {
+      setFavoriteLoading(true)
+
+      if (isFavorite) {
+        await removeFavorite(recipe._id)
+        notifySuccess({
+          title: 'Removed from Favorites',
+          message: `${recipe.title} was removed from favorites.`,
+        })
+        setIsFavorite(false)
+      } else {
+        await addFavorite(recipe._id)
+        notifySuccess({
+          title: 'Added to Favorites',
+          message: `${recipe.title} was added to favorites.`,
+        })
+        setIsFavorite(true)
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to update favorite'
+      notifyError({
+        title: 'Favorites Failed',
+        message,
+      })
+    } finally {
+      setFavoriteLoading(false)
     }
   }
 
@@ -405,8 +461,21 @@ function RecipeDetailPage() {
             ))}
           </div>
 
-          {canManageRecipe ? (
-            <Group mt="xs">
+          <Group mt="xs">
+            <Button
+              size="xs"
+              variant="light"
+              color={isFavorite ? 'red' : 'gray'}
+              loading={favoriteLoading}
+              onClick={() => {
+                void handleToggleFavorite()
+              }}
+            >
+              {isFavorite ? 'Unfavorite' : 'Add to Favorites'}
+            </Button>
+
+            {canManageRecipe ? (
+              <>
               <Button size="xs" variant="light" color="teal" onClick={() => setEditOpen(true)}>
                 Edit Recipe
               </Button>
@@ -438,8 +507,9 @@ function RecipeDetailPage() {
               >
                 Delete Recipe
               </Button>
-            </Group>
-          ) : null}
+              </>
+            ) : null}
+          </Group>
         </div>
       </div>
 
