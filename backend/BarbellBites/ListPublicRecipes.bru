@@ -1,0 +1,15 @@
+meta {
+  name: List Public Recipes
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{V1_API_LINK}}/recipes?search=chicken&diet=high-protein&mealType=dinner&maxPrepTime=30
+  auth: none
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

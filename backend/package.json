@@ -19,7 +19,13 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "db:migrate": "tsx src/scripts/migrate.ts",
+    "db:seed": "tsx src/scripts/resetAndSeed.ts",
+    "test:v1:smoke": "cd BarbellBites && bru run V1/Smoke -r --env Development --bail --noproxy",
+    "test:v1:edge": "cd BarbellBites && bru run V1/Edge -r --env Development --bail --noproxy",
+    "test:v2:smoke": "cd BarbellBites && bru run V2/Smoke -r --env Development --bail --noproxy",
+    "test:v2:edge": "cd BarbellBites && bru run V2/Edge -r --env Development --bail --noproxy"
   },
   "keywords": [],
   "author": "",
@@ -34,6 +40,7 @@
     "@types/morgan": "^1.9.10",
     "@types/multer": "^2.0.0",
     "@types/node": "^25.3.0",
+    "@usebruno/cli": "^3.1.3",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   }

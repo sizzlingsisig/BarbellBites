@@ -1,0 +1,38 @@
+meta {
+  name: Smoke List Favorites
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{V1_API_LINK}}/favorites
+  body: none
+  auth: inherit
+}
+
+script:post-response {
+  const status = res.getStatus();
+  if (status !== 200) {
+    throw new Error(`Expected 200, got ${status}`);
+  }
+
+  const data = res.getBody();
+  if (!Array.isArray(data)) {
+    throw new Error('Expected favorites response to be an array');
+  }
+
+  const recipeId = bru.getEnvVar('recipeId');
+  const found = data.some((favorite) => {
+    const favRecipeId = favorite?.recipeId?._id || favorite?.recipeId;
+    return String(favRecipeId) === String(recipeId);
+  });
+
+  if (!found) {
+    throw new Error('Created recipe was not found in favorites list');
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

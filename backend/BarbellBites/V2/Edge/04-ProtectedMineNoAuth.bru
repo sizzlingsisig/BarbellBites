@@ -1,0 +1,23 @@
+meta {
+  name: Edge Protected Mine No Auth
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{V2_API_LINK}}/recipes/mine
+  body: none
+  auth: none
+}
+
+script:post-response {
+  const status = res.getStatus();
+  if (status !== 401) {
+    throw new Error(`Expected 401, got ${status}`);
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

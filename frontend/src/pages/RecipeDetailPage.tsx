@@ -1,218 +1,656 @@
-import { Badge, Container, Group, Stack, Text, Title, Grid, ThemeIcon, Card, ActionIcon } from '@mantine/core'
+import { useEffect, useRef, useState } from 'react'
+import { Badge, Stack, Text, Title, Grid, ThemeIcon, ActionIcon, Loader, Group, Button } from '@mantine/core'
 import PLACEHOLDER_IMAGE from '../components/PlaceholderImage'
 import { IconShoppingCart, IconChefHat, IconClock, IconFlame, IconUsers } from '../components/RecipeIcons'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import CreateRecipeModal from '../components/CreateRecipeModal'
+import ConfirmDeleteModal from '../components/ConfirmDeleteModal'
+import { getRecipeById, updateRecipe, type RecipeMutationPayload } from '../api/recipesApi'
+import { useAuthStore } from '../store/authStore'
+import { notifyError, notifySuccess } from '../services/notify'
+import { useRecipeDeleteWithUndo } from '../hooks/useRecipeDeleteWithUndo'
 
-// Mock Data - You will eventually fetch this from your backend API
-const recipes = {
-	'anabolic-oats': {
-		title: "Anabolic Oats",
-		description: "High-protein oatmeal for muscle gain.",
-		prepTime: "5 mins",
-		cookTime: "10 mins",
-		servings: 1,
-		image: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=2000",
-		macros: { calories: 350, protein: 32, carbs: 40, fats: 8 },
-		ingredients: [
-			{ item: "Rolled Oats", amount: "1/2 cup" },
-			{ item: "Whey Protein", amount: "1 scoop" },
-			{ item: "Almond Milk", amount: "1 cup" },
-			{ item: "Chia Seeds", amount: "1 tbsp" },
-			{ item: "Blueberries", amount: "1/4 cup" },
-		],
-		steps: [
-			"Combine oats and almond milk in a pot. Cook until thickened.",
-			"Stir in protein powder and chia seeds.",
-			"Top with blueberries and enjoy.",
-		],
-	},
-	'high-protein-wrap': {
-		title: "High-Protein Chicken Wrap",
-		description: "Lean chicken breast wrapped with veggies for weight loss.",
-		prepTime: "10 mins",
-		cookTime: "10 mins",
-		servings: 1,
-		image: "https://images.unsplash.com/photo-1519864600265-abb23847ef2c?auto=format&fit=crop&q=80&w=2000",
-		macros: { calories: 400, protein: 38, carbs: 30, fats: 10 },
-		ingredients: [
-			{ item: "Chicken Breast", amount: "4 oz" },
-			{ item: "Whole Wheat Wrap", amount: "1" },
-			{ item: "Lettuce", amount: "1/2 cup" },
-			{ item: "Tomato", amount: "2 slices" },
-			{ item: "Greek Yogurt", amount: "2 tbsp" },
-		],
-		steps: [
-			"Grill chicken breast and slice.",
-			"Layer wrap with lettuce, tomato, chicken, and yogurt.",
-			"Roll up and serve.",
-		],
-	},
-	'salmon-bowl': {
-		title: "Salmon Macro Bowl",
-		description: "Heart-healthy salmon with macro-balanced sides.",
-		prepTime: "8 mins",
-		cookTime: "12 mins",
-		servings: 1,
-		image: "https://images.unsplash.com/photo-1464306076886-debede6bbf94?auto=format&fit=crop&q=80&w=2000",
-		macros: { calories: 480, protein: 40, carbs: 35, fats: 18 },
-		ingredients: [
-			{ item: "Salmon Fillet", amount: "5 oz" },
-			{ item: "Brown Rice", amount: "1/2 cup" },
-			{ item: "Broccoli", amount: "1/2 cup" },
-			{ item: "Olive Oil", amount: "1 tsp" },
-			{ item: "Lemon", amount: "1 wedge" },
-		],
-		steps: [
-			"Bake salmon fillet with olive oil and lemon.",
-			"Steam broccoli and cook rice.",
-			"Assemble bowl and serve.",
-		],
-	},
+type RecipeResponse = {
+  _id?: string
+  slug?: string
+  owner?: string | { _id?: string; id?: string }
+  title: string
+  description?: string
+  visibility?: 'public' | 'private' | 'unlisted'
+  diets?: string[]
+  mealTypes?: string[]
+  cuisines?: string[]
+  prepTime?: number
+  cookTime?: number
+  totalTime?: number
+  servings?: number
+  servingSize?: string
+  image?: string
+  ingredients?: Array<{ name: string; amount: string; unit?: string }>
+  steps?: string[]
+  instructions?: string[]
+  nutritionPerServing?: {
+    calories: number
+    protein: number
+    carbs: number
+    fats: number
+  }
+  nutrition?: {
+    calories: number
+    protein: number
+    carbs: number
+    fats: number
+  }
 }
 
+const extractId = (value: unknown): string | undefined => {
+  if (!value) {
+    return undefined
+  }
+
+  if (typeof value === 'string') {
+    return value
+  }
+
+  if (typeof value !== 'object') {
+    return undefined
+  }
+
+  const record = value as Record<string, unknown>
+  const possibleId = record._id ?? record.id ?? record.$oid
+
+  if (typeof possibleId === 'string') {
+    return possibleId
+  }
+
+  if (possibleId && typeof possibleId === 'object') {
+    const nested = possibleId as Record<string, unknown>
+    if (typeof nested.$oid === 'string') {
+      return nested.$oid
+    }
+  }
+
+  return undefined
+}
+
+const glassPanel = {
+  background: 'rgba(255,255,255,0.04)',
+  backdropFilter: 'blur(32px) saturate(180%)',
+  WebkitBackdropFilter: 'blur(32px) saturate(180%)',
+  border: '1px solid rgba(255,255,255,0.09)',
+  boxShadow: '0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)',
+} as const
+
+const ShimmerLine = () => (
+  <div
+    className="absolute top-0 left-6 right-6 h-px"
+    style={{ background: 'linear-gradient(90deg, transparent, rgba(0,200,150,0.5), transparent)' }}
+  />
+)
+
 function RecipeDetailPage() {
-	const { recipeId } = useParams()
-	const recipe = recipes[recipeId as keyof typeof recipes]
+  const { slug } = useParams<{ slug: string }>()
+  const navigate = useNavigate()
+  const currentUser = useAuthStore((state) => state.user)
+  const [recipe, setRecipe] = useState<RecipeResponse | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [editOpen, setEditOpen] = useState(false)
+  const [editLoading, setEditLoading] = useState(false)
+  const [editError, setEditError] = useState('')
+  const initialTitleRef = useRef(document.title)
+  const { openDeleteModal, modalProps } = useRecipeDeleteWithUndo()
 
-	if (!recipe) {
-		return (
-			<main className="min-h-screen bg-ink font-sans selection:bg-brand-500 selection:text-ink pb-20 flex items-center justify-center">
-				<Stack gap="md" align="center">
-					<Title order={2} className="text-paper font-bold">Recipe Not Found</Title>
-					<Text className="text-paper/70">No recipe found for ID: {recipeId}</Text>
-					<ActionIcon component={Link} to="/" variant="subtle" color="gray" radius="xl" size="xl" className="bg-brand-500/10 backdrop-blur-md hover:bg-brand-500 text-paper">
-						←
-					</ActionIcon>
-				</Stack>
-			</main>
-		)
-	}
+  useEffect(() => {
+    const loadRecipe = async () => {
+      if (!slug) {
+        setRecipe(null)
+        return
+      }
 
-	return (
-		<main className="min-h-screen bg-ink font-sans selection:bg-brand-500 selection:text-ink pb-20">
-			{/* HERO SECTION (Image & Title) */}
-			<section className="relative w-full h-[40vh] min-h-100">
-				<img 
-					src={recipe.image || PLACEHOLDER_IMAGE}
-					alt={recipe.title}
-					className="absolute inset-0 w-full h-full object-cover opacity-60"
-					onError={e => { e.currentTarget.src = PLACEHOLDER_IMAGE; }}
-				/>
-				<div className="absolute inset-0 bg-linear-to-t from-ink via-ink/60 to-transparent"></div>
+      try {
+        setLoading(true)
+        setError('')
+        const data = await getRecipeById(slug)
+        setRecipe(data as RecipeResponse)
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Failed to load recipe'
+        setError(message)
+        setRecipe(null)
+      } finally {
+        setLoading(false)
+      }
+    }
 
-				<Container size="lg" className="relative z-10 h-full pt-8 pb-12">
-					<Grid gutter="md" align="center">
-						<Grid.Col span={{ base: 12, md: 2 }} className="flex items-center justify-start">
-							<ActionIcon component={Link} to="/" variant="subtle" color="gray" radius="xl" size="xl" className="bg-ink/40 backdrop-blur-md hover:bg-ink/80 text-paper">
-								←
-							</ActionIcon>
-						</Grid.Col>
-						<Grid.Col span={{ base: 12, md: 10 }}>
-							<Badge color="brand.5" variant="outline" size="lg" className="backdrop-blur-md bg-brand-500/10 border-brand-500 text-brand-500 mb-4">
-								{recipe.title}
-							</Badge>
-							<Title order={1} className="text-paper font-black text-4xl sm:text-5xl md:text-6xl mb-4 leading-tight">
-								{recipe.title}
-							</Title>
-							<Text className="text-paper/80 text-lg max-w-2xl mb-6 leading-relaxed">
-								{recipe.description}
-							</Text>
-							<Grid gutter="xs" className="text-paper/60 font-medium mb-2">
-								<Grid.Col span={{ base: 12, sm: 4 }}>
-									<Group gap="xs">
-										<IconClock size={18} className="inline-block align-middle text-brand-500 mr-1" /> Prep: {recipe.prepTime}
-									</Group>
-								</Grid.Col>
-								<Grid.Col span={{ base: 12, sm: 4 }}>
-									<Group gap="xs">
-										<IconFlame size={18} className="inline-block align-middle text-brand-500 mr-1" /> Cook: {recipe.cookTime}
-									</Group>
-								</Grid.Col>
-								<Grid.Col span={{ base: 12, sm: 4 }}>
-									<Group gap="xs">
-										<IconUsers size={18} className="inline-block align-middle text-brand-500 mr-1" /> Serves: {recipe.servings}
-									</Group>
-								</Grid.Col>
-							</Grid>
-						</Grid.Col>
-					</Grid>
-				</Container>
-			</section>
+    void loadRecipe()
+  }, [slug])
 
-			<Container size="lg" className="-mt-8 relative z-20">
-				{/* MACROS */}
-				<Grid gutter="md" className="mb-12">
-					{[{ label: 'Calories', value: recipe.macros.calories, unit: 'kcal', color: 'text-white' },
-						{ label: 'Protein', value: recipe.macros.protein, unit: 'g', color: 'text-brand-500' },
-						{ label: 'Carbs', value: recipe.macros.carbs, unit: 'g', color: 'text-paper/70' },
-						{ label: 'Fats', value: recipe.macros.fats, unit: 'g', color: 'text-paper/70' },
-					].map((macro, idx) => (
-						<Grid.Col span={{ base: 6, sm: 3 }} key={idx}>
-							  <Card radius="lg" className="bg-white/5 backdrop-blur-xl border border-white/10 text-center py-6">
-								<Text className="text-paper/50 font-bold uppercase tracking-widest text-xs mb-1">
-									{macro.label}
-								</Text>
-								<Title order={2} className={`${macro.color} font-black text-3xl sm:text-4xl`}>
-									{macro.value}<span className="text-lg text-paper/40 ml-1">{macro.unit}</span>
-								</Title>
-							</Card>
-						</Grid.Col>
-					))}
-				</Grid>
+  useEffect(() => {
+    if (loading) {
+      document.title = 'BarbellBites | Loading Recipe'
+      return
+    }
 
-				{/* CONTENT SPLIT (Ingredients Left, Steps Right) */}
-				<Grid gutter={40}>
-					{/* LEFT COLUMN: INGREDIENTS */}
-					<Grid.Col span={{ base: 12, md: 4 }}>
-						<div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 md:p-8 sticky top-8">
-							<Title order={3} className="text-paper font-bold text-2xl mb-6 flex items-center gap-3">
-								<IconShoppingCart size={24} className="text-brand-500" /> Ingredients
-							</Title>
-							<Stack gap="md">
-								{recipe.ingredients.map((ing, idx) => (
-									<Group key={idx} justify="space-between" wrap="nowrap" className="border-b border-white/5 pb-3 last:border-0 last:pb-0">
-										<Text className="text-paper/90 font-medium text-base">{ing.item}</Text>
-										<Badge color="brand.5" variant="light" size="lg" className="bg-brand-500/10 text-brand-400 font-bold border border-brand-500/20">
-											{ing.amount}
-										</Badge>
-									</Group>
-								))}
-							</Stack>
-						</div>
-					</Grid.Col>
+    if (error) {
+      document.title = 'BarbellBites | Recipe Not Found'
+      return
+    }
 
-					{/* RIGHT COLUMN: STEPS */}
-					<Grid.Col span={{ base: 12, md: 8 }}>
-						<div className="p-4 md:p-8">
-							<Title order={3} className="text-paper font-bold text-3xl mb-8 flex items-center gap-3">
-								<IconChefHat size={28} className="text-brand-500" /> Instructions
-							</Title>
+    if (recipe?.title) {
+      document.title = `BarbellBites | ${recipe.title}`
+      return
+    }
 
-							<Stack gap="xl">
-								{recipe.steps.map((step, idx) => (
-									<Group key={idx} align="flex-start" wrap="nowrap" gap="lg" className="group">
-										<ThemeIcon 
-											size={48} 
-											radius="xl" 
-											className="bg-brand-500/10 text-brand-500 font-black text-xl border border-brand-500/30 group-hover:bg-brand-500 group-hover:text-ink transition-colors duration-300"
-										>
-											{idx + 1}
-										</ThemeIcon>
-										<div className="flex-1 mt-1">
-											<Text className="text-paper font-bold text-lg mb-2">Step {idx + 1}</Text>
-											<Text className="text-paper/70 text-lg leading-relaxed">
-												{step}
-											</Text>
-										</div>
-									</Group>
-								))}
-							</Stack>
-						</div>
-					</Grid.Col>
-				</Grid>
-			</Container>
-		</main>
-	)
+    document.title = 'BarbellBites | View Recipe'
+  }, [loading, error, recipe?.title])
+
+  useEffect(() => {
+    return () => {
+      document.title = initialTitleRef.current
+    }
+  }, [])
+
+  const nutrition = recipe?.nutritionPerServing ?? recipe?.nutrition
+  const ingredients = recipe?.ingredients ?? []
+  const steps = recipe?.steps ?? recipe?.instructions ?? []
+  const ownerId = extractId(recipe?.owner)
+  const currentUserId = extractId(currentUser)
+  const canManageRecipe = Boolean(currentUserId) && (!ownerId || ownerId === currentUserId)
+
+  const editInitialValues: RecipeMutationPayload | null = recipe
+    ? {
+        title: recipe.title,
+        description: recipe.description ?? '',
+        visibility: recipe.visibility === 'private' ? 'private' : 'public',
+        prepTime: recipe.prepTime ?? 0,
+        cookTime: recipe.cookTime ?? 0,
+        totalTime: recipe.totalTime ?? (recipe.prepTime ?? 0) + (recipe.cookTime ?? 0),
+        servings: recipe.servings ?? 1,
+        servingSize: recipe.servingSize ?? '',
+        diets: recipe.diets ?? [],
+        mealTypes: recipe.mealTypes ?? [],
+        cuisines: recipe.cuisines ?? [],
+        ingredients: recipe.ingredients ?? [],
+        instructions: steps,
+        nutrition: {
+          calories: nutrition?.calories ?? 0,
+          protein: nutrition?.protein ?? 0,
+          carbs: nutrition?.carbs ?? 0,
+          fats: nutrition?.fats ?? 0,
+        },
+      }
+    : null
+
+  const handleUpdateRecipe = async (payload: RecipeMutationPayload) => {
+    if (!slug) {
+      return
+    }
+
+    try {
+      setEditLoading(true)
+      setEditError('')
+      await updateRecipe(slug, payload)
+      notifySuccess({
+        title: 'Recipe Updated',
+        message: 'Recipe details were updated successfully.',
+      })
+      setEditOpen(false)
+
+      const updated = await getRecipeById(slug)
+      setRecipe(updated as RecipeResponse)
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to update recipe'
+      setEditError(message)
+      notifyError({
+        title: 'Update Failed',
+        message,
+      })
+    } finally {
+      setEditLoading(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <Loader size="md" />
+      </div>
+    )
+  }
+
+  if (!recipe || error) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <div
+          className="relative rounded-2xl p-12 text-center overflow-hidden"
+          style={glassPanel}
+        >
+          <ShimmerLine />
+          <Text
+            size="xs"
+            style={{ color: '#00c896', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 12 }}
+          >
+            404 — Not Found
+          </Text>
+          <Title order={3} style={{ color: 'rgba(255,255,255,0.9)', marginBottom: 8 }}>
+            Recipe doesn't exist
+          </Title>
+          <Text style={{ color: 'rgba(255,255,255,0.45)', marginBottom: 24 }} size="sm">
+            {error || `No recipe found for slug: ${slug}`}
+          </Text>
+          <ActionIcon
+            component={Link}
+            to="/"
+            size="xl"
+            radius="xl"
+            style={{
+              background: 'rgba(0,200,150,0.10)',
+              border: '1px solid rgba(0,200,150,0.3)',
+              color: '#1DDFBD',
+            }}
+          >
+            ←
+          </ActionIcon>
+        </div>
+      </div>
+    )
+  }
+
+  const macros = [
+    { label: 'Calories', value: nutrition?.calories ?? 0, unit: 'kcal', accent: true },
+    { label: 'Protein',  value: nutrition?.protein ?? 0,  unit: 'g',    accent: true },
+    { label: 'Carbs',    value: nutrition?.carbs ?? 0,    unit: 'g',    accent: false },
+    { label: 'Fats',     value: nutrition?.fats ?? 0,     unit: 'g',    accent: false },
+  ]
+
+  return (
+    <div className="h-full flex flex-col gap-5 overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
+      <CreateRecipeModal
+        opened={editOpen}
+        loading={editLoading}
+        error={editError}
+        onClose={() => {
+          if (!editLoading) {
+            setEditOpen(false)
+            setEditError('')
+          }
+        }}
+        onSubmit={handleUpdateRecipe}
+        mode="edit"
+        initialValues={editInitialValues}
+      />
+
+      <ConfirmDeleteModal
+        {...modalProps}
+      />
+
+      {/* ── Hero ── */}
+      <div
+        className="relative rounded-2xl overflow-hidden"
+        style={{ ...glassPanel, minHeight: 220 }}
+      >
+        <ShimmerLine />
+
+        {/* Background image */}
+        <img
+          src={recipe.image || PLACEHOLDER_IMAGE}
+          alt={recipe.title}
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{ opacity: 0.18 }}
+          onError={e => { e.currentTarget.src = PLACEHOLDER_IMAGE }}
+        />
+        {/* Gradient vignette */}
+        <div
+          className="absolute inset-0"
+          style={{ background: 'linear-gradient(135deg, rgba(10,15,13,0.85) 0%, rgba(10,15,13,0.5) 100%)' }}
+        />
+        {/* Teal floor glow */}
+        <div
+          className="absolute bottom-0 left-0 right-0 h-24 pointer-events-none"
+          style={{ background: 'linear-gradient(to top, rgba(0,200,150,0.05), transparent)' }}
+        />
+
+        <div className="relative z-10 p-6 flex flex-col gap-4">
+          {/* Back + badge row */}
+          <div className="flex items-center gap-3">
+            <ActionIcon
+              component={Link}
+              to="/"
+              size="md"
+              radius="xl"
+              style={{
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.10)',
+                color: 'rgba(255,255,255,0.7)',
+                flexShrink: 0,
+              }}
+            >
+              ←
+            </ActionIcon>
+            <Badge
+              size="sm"
+              style={{
+                background: 'rgba(0,200,150,0.10)',
+                border: '1px solid rgba(0,200,150,0.25)',
+                color: '#1DDFBD',
+                fontWeight: 700,
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                fontSize: '0.6rem',
+              }}
+            >
+              Recipe
+            </Badge>
+          </div>
+
+          {/* Title + description */}
+          <div>
+            <Title
+              order={1}
+              style={{
+                color: 'rgba(255,255,255,0.95)',
+                fontWeight: 800,
+                fontSize: 'clamp(1.5rem, 3vw, 2.25rem)',
+                letterSpacing: '-0.02em',
+                lineHeight: 1.2,
+                marginBottom: 8,
+              }}
+            >
+              {recipe.title}
+            </Title>
+            <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.9rem', lineHeight: 1.6 }}>
+              {recipe.description}
+            </Text>
+          </div>
+
+          {/* Meta pills row */}
+          <div className="flex flex-wrap gap-2">
+            {[
+              { icon: <IconUsers size={13} />,  label: `Visibility: ${recipe.visibility ?? 'public'}` },
+              { icon: <IconClock size={13} />,  label: `Prep ${recipe.prepTime ?? 0} min` },
+              { icon: <IconFlame size={13} />,  label: `Cook ${recipe.cookTime ?? 0} min` },
+              { icon: <IconUsers size={13} />,  label: `Serves ${recipe.servings ?? 1}${recipe.servingSize ? ` (${recipe.servingSize})` : ''}` },
+            ].map(({ icon, label }) => (
+              <div
+                key={label}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg"
+                style={{
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid rgba(255,255,255,0.09)',
+                  color: 'rgba(255,255,255,0.6)',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  letterSpacing: '0.03em',
+                }}
+              >
+                <span style={{ color: '#00c896' }}>{icon}</span>
+                {label}
+              </div>
+            ))}
+
+            {(recipe.diets ?? []).map((diet) => (
+              <Badge key={`diet-${diet}`} size="sm" style={{ background: 'rgba(0,200,150,0.10)', border: '1px solid rgba(0,200,150,0.2)', color: '#1DDFBD' }}>
+                Diet: {diet}
+              </Badge>
+            ))}
+            {(recipe.mealTypes ?? []).map((mealType) => (
+              <Badge key={`meal-${mealType}`} size="sm" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.75)' }}>
+                Meal: {mealType}
+              </Badge>
+            ))}
+            {(recipe.cuisines ?? []).map((cuisine) => (
+              <Badge key={`cuisine-${cuisine}`} size="sm" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.75)' }}>
+                Cuisine: {cuisine}
+              </Badge>
+            ))}
+          </div>
+
+          {canManageRecipe ? (
+            <Group mt="xs">
+              <Button size="xs" variant="light" color="teal" onClick={() => setEditOpen(true)}>
+                Edit Recipe
+              </Button>
+              <Button
+                size="xs"
+                variant="light"
+                color="red"
+                onClick={() => {
+                  if (!recipe) {
+                    return
+                  }
+
+                  const targetSlug = recipe.slug ?? slug
+                  if (!targetSlug) {
+                    return
+                  }
+
+                  openDeleteModal({
+                    slug: targetSlug,
+                    title: recipe.title,
+                    onDeleted: async () => {
+                      navigate('/')
+                    },
+                    onUndone: async () => {
+                      navigate('/')
+                    },
+                  })
+                }}
+              >
+                Delete Recipe
+              </Button>
+            </Group>
+          ) : null}
+        </div>
+      </div>
+
+     <Grid gutter="sm">
+  {macros.map((macro) => (
+    <Grid.Col span={{ base: 6, sm: 3 }} key={macro.label}>
+      <div
+        className="relative rounded-xl p-4 text-center overflow-hidden transition-all duration-150 active:scale-[0.97] active:translate-y-px cursor-default"
+        style={{
+          background: 'rgba(255,255,255,0.04)',
+          backdropFilter: 'blur(24px)',
+          WebkitBackdropFilter: 'blur(24px)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)',
+        }}
+      >
+        <ShimmerLine />
+        <Text
+          size="xs"
+          style={{
+            color: 'rgba(0,200,150,0.75)' ,
+            fontWeight: 700,
+            letterSpacing: '0.1em',
+            textTransform: 'uppercase' as const,
+            marginBottom: 6,
+            marginTop: 4,
+          }}
+        >
+          {macro.label}
+        </Text>
+        <div className="flex items-baseline justify-center gap-1">
+          <Text
+            style={{
+              color: 'rgba(255,255,255,0.88)',
+              fontWeight: 800,
+              fontSize: '1.75rem',
+              lineHeight: 1,
+              letterSpacing: '-0.02em',
+            }}
+          >
+            {macro.value}
+          </Text>
+          <Text style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.7rem', fontWeight: 600 }}>
+            {macro.unit}
+          </Text>
+        </div>
+      </div>
+    </Grid.Col>
+  ))}
+</Grid>
+
+      {/* ── Ingredients + Steps ── */}
+      <Grid gutter="sm" className="flex-1">
+
+        {/* Ingredients */}
+        <Grid.Col span={{ base: 12, md: 4 }}>
+          <div
+            className="relative rounded-2xl p-6 overflow-hidden h-full"
+            style={glassPanel}
+          >
+            <ShimmerLine />
+            <div className="flex items-center gap-2 mb-5">
+              <span style={{ color: '#00c896' }}><IconShoppingCart size={18} /></span>
+              <Text
+                style={{
+                  color: 'rgba(255,255,255,0.9)',
+                  fontWeight: 800,
+                  fontSize: '1rem',
+                  letterSpacing: '-0.01em',
+                }}
+              >
+                Ingredients
+              </Text>
+              <div
+                className="ml-auto px-2 py-0.5 rounded-md"
+                style={{
+                  background: 'rgba(0,200,150,0.08)',
+                  border: '1px solid rgba(0,200,150,0.2)',
+                  color: '#FAFBFB',
+                  fontSize: '0.65rem',
+                  fontWeight: 700,
+                  letterSpacing: '0.06em',
+                }}
+              >
+                {ingredients.length} items
+              </div>
+            </div>
+
+            <Stack gap={0}>
+              {ingredients.map((ing, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-center justify-between py-3"
+                  style={{
+                    borderBottom: idx < ingredients.length - 1
+                      ? '1px solid rgba(255,255,255,0.05)'
+                      : 'none',
+                  }}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div
+                      className="w-1 h-4 rounded-full"
+                      style={{ background: 'rgba(0,200,150,0.4)' }}
+                    />
+                    <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.85rem', fontWeight: 500 }}>
+                      {ing.name}
+                    </Text>
+                  </div>
+                  <Badge
+                    size="sm"
+                    style={{
+                      background: 'rgba(0,200,150,0.08)',
+                      border: '1px solid rgba(0,200,150,0.2)',
+                      color: '#FAFBFB',
+                      fontWeight: 700,
+                      fontSize: '0.65rem',
+                      letterSpacing: '0.04em',
+                    }}
+                  >
+                    {`${ing.amount}${ing.unit ? ` ${ing.unit}` : ''}`}
+                  </Badge>
+                </div>
+              ))}
+
+              {ingredients.length === 0 && (
+                <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem' }}>
+                  No ingredients listed.
+                </Text>
+              )}
+            </Stack>
+          </div>
+        </Grid.Col>
+
+        {/* Steps */}
+        <Grid.Col span={{ base: 12, md: 8 }}>
+          <div
+            className="relative rounded-2xl p-6 overflow-hidden h-full"
+            style={glassPanel}
+          >
+            <ShimmerLine />
+            <div className="flex items-center gap-2 mb-6">
+              <span style={{ color: '#00c896' }}><IconChefHat size={18} /></span>
+              <Text
+                style={{
+                  color: 'rgba(255,255,255,0.9)',
+                  fontWeight: 800,
+                  fontSize: '1rem',
+                  letterSpacing: '-0.01em',
+                }}
+              >
+                Instructions
+              </Text>
+            </div>
+
+            <Stack gap="lg">
+              {steps.map((step, idx) => (
+                <div key={idx} className="flex gap-4 group">
+                  <ThemeIcon
+                    size={36}
+                    radius="xl"
+                    style={{
+                      background: 'rgba(0,200,150,0.10)',
+                      border: '1px solid rgba(0,200,150,0.25)',
+                      color: '#1DDFBD',
+                      fontWeight: 800,
+                      fontSize: '0.8rem',
+                      flexShrink: 0,
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
+                    {idx + 1}
+                  </ThemeIcon>
+                  <div className="flex-1 pt-1">
+                    <Text
+                      size="xs"
+                      style={{
+                        color: 'rgba(0,200,150,0.6)',
+                        fontWeight: 700,
+                        letterSpacing: '0.1em',
+                        textTransform: 'uppercase',
+                        marginBottom: 4,
+                      }}
+                    >
+                      Step {idx + 1}
+                    </Text>
+                    <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.9rem', lineHeight: 1.7 }}>
+                      {step}
+                    </Text>
+                    {/* Step divider */}
+                    {idx < steps.length - 1 && (
+                      <div
+                        className="mt-4 ml-0 h-px"
+                        style={{ background: 'rgba(255,255,255,0.05)' }}
+                      />
+                    )}
+                  </div>
+                </div>
+              ))}
+
+              {steps.length === 0 && (
+                <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem' }}>
+                  No instructions listed.
+                </Text>
+              )}
+            </Stack>
+          </div>
+        </Grid.Col>
+      </Grid>
+
+    </div>
+  )
 }
 
 export default RecipeDetailPage

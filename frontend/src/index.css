@@ -1,11 +1,41 @@
 
 @import "tailwindcss";
 
-/* All colors, typography, and shadows should be used via Tailwind and Mantine theme tokens. */
-/* Remove manual CSS variables and use theme/tailwind classes for consistency. */
-body {
-  @apply bg-brand-900 text-brand-5;
+:root {
+  --color-near-black: #010202;
+  --color-deep-surface: #0A0F0D;
+  --color-card-slate: #0D1A15;
+  --color-border-slate: #091210;
+  --color-text-slate: #49514A;
+  --color-chrome-gray: #A9B0AF;
+  --color-white-ui: #FAFBFB;
+  --color-deep-teal: #0C373B;
+  --color-dark-teal: #115553;
+  --color-primary-teal: #079D84;
+  --color-glow-teal: #00C896;
+  --color-neon-highlight: #1DDFBD;
+
+  --glass-fill-subtle: rgba(255, 255, 255, 0.04);
+  --glass-fill-base: rgba(255, 255, 255, 0.05);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-border-raised: rgba(255, 255, 255, 0.10);
+  --glass-inner-highlight: rgba(255, 255, 255, 0.06);
+
+  --orb-top-left: radial-gradient(circle, #00c896 0%, transparent 70%);
+  --orb-right: radial-gradient(circle, #00b37d 0%, transparent 70%);
+  --orb-bottom: radial-gradient(circle, #00ffa3 0%, transparent 70%);
+  --hero-floor-glow: radial-gradient(ellipse at 30% 100%, #00c896, transparent 70%);
+  --card-accent-line: linear-gradient(90deg, transparent, rgba(0, 200, 150, 0.5), transparent);
+
+  --shadow-glass-form: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --shadow-glass-hero: 0 20px 60px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+
+  --blur-image-overlay: blur(2px);
+  --blur-glass-form: blur(24px) saturate(180%);
+  --blur-glass-hero: blur(32px) saturate(200%);
+  --blur-stat-pill: blur(8px);
 }
+
 
 * {
   box-sizing: border-box;
@@ -17,7 +47,9 @@ body,
   min-height: 100vh;
 }
 
-.bb-search-input::placeholder {
-  @apply text-brand-5 opacity-80;
+body {
+  margin: 0;
+  background: var(--color-near-black);
+  color: var(--color-white-ui);
 }
 

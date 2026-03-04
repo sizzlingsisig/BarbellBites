@@ -1,0 +1,36 @@
+meta {
+  name: Smoke Update Recipe
+  type: http
+  seq: 7
+}
+
+put {
+  url: {{V1_API_LINK}}/recipes/{{recipeSlug}}
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "description": "{{smokeUpdatedDescription}}",
+    "prepTime": 12,
+    "cookTime": 18
+  }
+}
+
+script:post-response {
+  const status = res.getStatus();
+  if (status !== 200) {
+    throw new Error(`Expected 200, got ${status}`);
+  }
+
+  const data = res.getBody();
+  if (String(data?.description) !== String(bru.getEnvVar('smokeUpdatedDescription'))) {
+    throw new Error('Recipe description was not updated as expected');
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

@@ -1,0 +1,15 @@
+meta {
+  name: Soft Delete Recipe
+  type: http
+  seq: 4
+}
+
+delete {
+  url: {{V1_API_LINK}}/recipes/{{recipeSlug}}
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

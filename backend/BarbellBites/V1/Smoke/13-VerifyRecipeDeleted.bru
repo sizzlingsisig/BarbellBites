@@ -1,0 +1,23 @@
+meta {
+  name: Smoke Verify Recipe Deleted
+  type: http
+  seq: 13
+}
+
+get {
+  url: {{V1_API_LINK}}/recipes/{{recipeSlug}}
+  body: none
+  auth: none
+}
+
+script:post-response {
+  const status = res.getStatus();
+  if (status !== 404) {
+    throw new Error(`Expected 404 after delete, got ${status}`);
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

@@ -1,0 +1,23 @@
+meta {
+  name: Smoke Auth Test
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{V2_API_LINK}}/auth/test
+  body: none
+  auth: inherit
+}
+
+script:post-response {
+  const status = res.getStatus();
+  if (status !== 200) {
+    throw new Error(`Expected 200, got ${status}`);
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

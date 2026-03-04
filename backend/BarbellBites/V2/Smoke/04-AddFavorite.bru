@@ -1,0 +1,23 @@
+meta {
+  name: Smoke Add Favorite
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{V2_API_LINK}}/favorites/{{recipeId}}
+  body: none
+  auth: inherit
+}
+
+script:post-response {
+  const status = res.getStatus();
+  if (status !== 201) {
+    throw new Error(`Expected 201, got ${status}`);
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
