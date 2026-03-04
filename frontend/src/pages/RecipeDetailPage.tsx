@@ -1,72 +1,33 @@
-import { Badge, Container, Group, Stack, Text, Title, Grid, ThemeIcon, ActionIcon } from '@mantine/core'
+import { useEffect, useRef, useState } from 'react'
+import { Badge, Stack, Text, Title, Grid, ThemeIcon, ActionIcon, Loader } from '@mantine/core'
 import PLACEHOLDER_IMAGE from '../components/PlaceholderImage'
 import { IconShoppingCart, IconChefHat, IconClock, IconFlame, IconUsers } from '../components/RecipeIcons'
 import { Link, useParams } from 'react-router-dom'
+import { getRecipeById } from '../api/recipesApi'
 
-const recipes = {
-  'anabolic-oats': {
-    title: "Anabolic Oats",
-    description: "High-protein oatmeal for muscle gain.",
-    prepTime: "5 mins",
-    cookTime: "10 mins",
-    servings: 1,
-    image: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=2000",
-    macros: { calories: 350, protein: 32, carbs: 40, fats: 8 },
-    ingredients: [
-      { item: "Rolled Oats", amount: "1/2 cup" },
-      { item: "Whey Protein", amount: "1 scoop" },
-      { item: "Almond Milk", amount: "1 cup" },
-      { item: "Chia Seeds", amount: "1 tbsp" },
-      { item: "Blueberries", amount: "1/4 cup" },
-    ],
-    steps: [
-      "Combine oats and almond milk in a pot. Cook until thickened.",
-      "Stir in protein powder and chia seeds.",
-      "Top with blueberries and enjoy.",
-    ],
-  },
-  'high-protein-wrap': {
-    title: "High-Protein Chicken Wrap",
-    description: "Lean chicken breast wrapped with veggies for weight loss.",
-    prepTime: "10 mins",
-    cookTime: "10 mins",
-    servings: 1,
-    image: "https://images.unsplash.com/photo-1519864600265-abb23847ef2c?auto=format&fit=crop&q=80&w=2000",
-    macros: { calories: 400, protein: 38, carbs: 30, fats: 10 },
-    ingredients: [
-      { item: "Chicken Breast", amount: "4 oz" },
-      { item: "Whole Wheat Wrap", amount: "1" },
-      { item: "Lettuce", amount: "1/2 cup" },
-      { item: "Tomato", amount: "2 slices" },
-      { item: "Greek Yogurt", amount: "2 tbsp" },
-    ],
-    steps: [
-      "Grill chicken breast and slice.",
-      "Layer wrap with lettuce, tomato, chicken, and yogurt.",
-      "Roll up and serve.",
-    ],
-  },
-  'salmon-bowl': {
-    title: "Salmon Macro Bowl",
-    description: "Heart-healthy salmon with macro-balanced sides.",
-    prepTime: "8 mins",
-    cookTime: "12 mins",
-    servings: 1,
-    image: "https://images.unsplash.com/photo-1464306076886-debede6bbf94?auto=format&fit=crop&q=80&w=2000",
-    macros: { calories: 480, protein: 40, carbs: 35, fats: 18 },
-    ingredients: [
-      { item: "Salmon Fillet", amount: "5 oz" },
-      { item: "Brown Rice", amount: "1/2 cup" },
-      { item: "Broccoli", amount: "1/2 cup" },
-      { item: "Olive Oil", amount: "1 tsp" },
-      { item: "Lemon", amount: "1 wedge" },
-    ],
-    steps: [
-      "Bake salmon fillet with olive oil and lemon.",
-      "Steam broccoli and cook rice.",
-      "Assemble bowl and serve.",
-    ],
-  },
+type RecipeResponse = {
+  title: string
+  description?: string
+  prepTime?: number
+  cookTime?: number
+  totalTime?: number
+  servings?: number
+  image?: string
+  ingredients?: Array<{ name: string; amount: string; unit?: string }>
+  steps?: string[]
+  instructions?: string[]
+  nutritionPerServing?: {
+    calories: number
+    protein: number
+    carbs: number
+    fats: number
+  }
+  nutrition?: {
+    calories: number
+    protein: number
+    carbs: number
+    fats: number
+  }
 }
 
 const glassPanel = {
@@ -85,10 +46,74 @@ const ShimmerLine = () => (
 )
 
 function RecipeDetailPage() {
-  const { recipeId } = useParams()
-  const recipe = recipes[recipeId as keyof typeof recipes]
+  const { slug } = useParams<{ slug: string }>()
+  const [recipe, setRecipe] = useState<RecipeResponse | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const initialTitleRef = useRef(document.title)
 
-  if (!recipe) {
+  useEffect(() => {
+    const loadRecipe = async () => {
+      if (!slug) {
+        setRecipe(null)
+        return
+      }
+
+      try {
+        setLoading(true)
+        setError('')
+        const data = await getRecipeById(slug)
+        setRecipe(data as RecipeResponse)
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Failed to load recipe'
+        setError(message)
+        setRecipe(null)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    void loadRecipe()
+  }, [slug])
+
+  useEffect(() => {
+    if (loading) {
+      document.title = 'BarbellBites | Loading Recipe'
+      return
+    }
+
+    if (error) {
+      document.title = 'BarbellBites | Recipe Not Found'
+      return
+    }
+
+    if (recipe?.title) {
+      document.title = `BarbellBites | ${recipe.title}`
+      return
+    }
+
+    document.title = 'BarbellBites | View Recipe'
+  }, [loading, error, recipe?.title])
+
+  useEffect(() => {
+    return () => {
+      document.title = initialTitleRef.current
+    }
+  }, [])
+
+  const nutrition = recipe?.nutritionPerServing ?? recipe?.nutrition
+  const ingredients = recipe?.ingredients ?? []
+  const steps = recipe?.steps ?? recipe?.instructions ?? []
+
+  if (loading) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <Loader size="md" />
+      </div>
+    )
+  }
+
+  if (!recipe || error) {
     return (
       <div className="h-full flex items-center justify-center">
         <div
@@ -106,7 +131,7 @@ function RecipeDetailPage() {
             Recipe doesn't exist
           </Title>
           <Text style={{ color: 'rgba(255,255,255,0.45)', marginBottom: 24 }} size="sm">
-            No recipe found for ID: {recipeId}
+            {error || `No recipe found for slug: ${slug}`}
           </Text>
           <ActionIcon
             component={Link}
@@ -127,10 +152,10 @@ function RecipeDetailPage() {
   }
 
   const macros = [
-    { label: 'Calories', value: recipe.macros.calories, unit: 'kcal', accent: true },
-    { label: 'Protein',  value: recipe.macros.protein,  unit: 'g',    accent: true },
-    { label: 'Carbs',    value: recipe.macros.carbs,    unit: 'g',    accent: false },
-    { label: 'Fats',     value: recipe.macros.fats,     unit: 'g',    accent: false },
+    { label: 'Calories', value: nutrition?.calories ?? 0, unit: 'kcal', accent: true },
+    { label: 'Protein',  value: nutrition?.protein ?? 0,  unit: 'g',    accent: true },
+    { label: 'Carbs',    value: nutrition?.carbs ?? 0,    unit: 'g',    accent: false },
+    { label: 'Fats',     value: nutrition?.fats ?? 0,     unit: 'g',    accent: false },
   ]
 
   return (
@@ -218,9 +243,9 @@ function RecipeDetailPage() {
           {/* Meta pills row */}
           <div className="flex flex-wrap gap-2">
             {[
-              { icon: <IconClock size={13} />,  label: `Prep ${recipe.prepTime}` },
-              { icon: <IconFlame size={13} />,  label: `Cook ${recipe.cookTime}` },
-              { icon: <IconUsers size={13} />,  label: `Serves ${recipe.servings}` },
+              { icon: <IconClock size={13} />,  label: `Prep ${recipe.prepTime ?? 0} min` },
+              { icon: <IconFlame size={13} />,  label: `Cook ${recipe.cookTime ?? 0} min` },
+              { icon: <IconUsers size={13} />,  label: `Serves ${recipe.servings ?? 1}` },
             ].map(({ icon, label }) => (
               <div
                 key={label}
@@ -323,17 +348,17 @@ function RecipeDetailPage() {
                   letterSpacing: '0.06em',
                 }}
               >
-                {recipe.ingredients.length} items
+                {ingredients.length} items
               </div>
             </div>
 
             <Stack gap={0}>
-              {recipe.ingredients.map((ing, idx) => (
+              {ingredients.map((ing, idx) => (
                 <div
                   key={idx}
                   className="flex items-center justify-between py-3"
                   style={{
-                    borderBottom: idx < recipe.ingredients.length - 1
+                    borderBottom: idx < ingredients.length - 1
                       ? '1px solid rgba(255,255,255,0.05)'
                       : 'none',
                   }}
@@ -344,7 +369,7 @@ function RecipeDetailPage() {
                       style={{ background: 'rgba(0,200,150,0.4)' }}
                     />
                     <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.85rem', fontWeight: 500 }}>
-                      {ing.item}
+                      {ing.name}
                     </Text>
                   </div>
                   <Badge
@@ -358,10 +383,16 @@ function RecipeDetailPage() {
                       letterSpacing: '0.04em',
                     }}
                   >
-                    {ing.amount}
+                    {`${ing.amount}${ing.unit ? ` ${ing.unit}` : ''}`}
                   </Badge>
                 </div>
               ))}
+
+              {ingredients.length === 0 && (
+                <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem' }}>
+                  No ingredients listed.
+                </Text>
+              )}
             </Stack>
           </div>
         </Grid.Col>
@@ -388,7 +419,7 @@ function RecipeDetailPage() {
             </div>
 
             <Stack gap="lg">
-              {recipe.steps.map((step, idx) => (
+              {steps.map((step, idx) => (
                 <div key={idx} className="flex gap-4 group">
                   <ThemeIcon
                     size={36}
@@ -422,7 +453,7 @@ function RecipeDetailPage() {
                       {step}
                     </Text>
                     {/* Step divider */}
-                    {idx < recipe.steps.length - 1 && (
+                    {idx < steps.length - 1 && (
                       <div
                         className="mt-4 ml-0 h-px"
                         style={{ background: 'rgba(255,255,255,0.05)' }}
@@ -431,6 +462,12 @@ function RecipeDetailPage() {
                   </div>
                 </div>
               ))}
+
+              {steps.length === 0 && (
+                <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem' }}>
+                  No instructions listed.
+                </Text>
+              )}
             </Stack>
           </div>
         </Grid.Col>

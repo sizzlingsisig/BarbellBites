@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, Stack, Text, Title, TextInput, PasswordInput, Alert } from '@mantine/core';
+import { Button, Stack, Text, Title, TextInput, PasswordInput } from '@mantine/core';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import AuthLayout from '../layouts/AuthLayout';

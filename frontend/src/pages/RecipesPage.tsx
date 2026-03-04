@@ -1,44 +1,17 @@
 import { useEffect, useState } from 'react'
-import { Button, Grid, Modal, Select, Stack, Text, TextInput, Textarea, Title } from '@mantine/core'
+import { Button, Grid, Text, Title } from '@mantine/core'
 import { RecipeCard } from '../components/RecipeCard'
-import { createRecipe, getRecipes } from '../api/recipesApi'
+import { createRecipe, getRecipes, type RecipeMutationPayload } from '../api/recipesApi'
+import CreateRecipeModal from '../components/CreateRecipeModal'
 
 type RecipeApiItem = {
   _id: string
   slug: string
   title: string
   visibility: 'public' | 'private'
-  tags?: string[]
-}
-
-type CreateFormState = {
-  title: string
-  description: string
-  visibility: 'public' | 'private'
-  tags: string
-  ingredientName: string
-  ingredientAmount: string
-  ingredientUnit: string
-  instructions: string
-  calories: string
-  protein: string
-  carbs: string
-  fats: string
-}
-
-const initialFormState: CreateFormState = {
-  title: '',
-  description: '',
-  visibility: 'public',
-  tags: '',
-  ingredientName: '',
-  ingredientAmount: '',
-  ingredientUnit: '',
-  instructions: '',
-  calories: '0',
-  protein: '0',
-  carbs: '0',
-  fats: '0',
+  diets?: string[]
+  mealTypes?: string[]
+  cuisines?: string[]
 }
 
 function RecipesPage() {
@@ -49,7 +22,6 @@ function RecipesPage() {
   const [createOpen, setCreateOpen] = useState(false)
   const [createLoading, setCreateLoading] = useState(false)
   const [createError, setCreateError] = useState('')
-  const [form, setForm] = useState<CreateFormState>(initialFormState)
 
   const loadRecipes = async () => {
     try {
@@ -69,40 +41,14 @@ function RecipesPage() {
     void loadRecipes()
   }, [])
 
-  const handleCreateRecipe = async () => {
+  const handleCreateRecipe = async (payload: RecipeMutationPayload) => {
     try {
       setCreateError('')
       setCreateLoading(true)
 
-      await createRecipe({
-        title: form.title,
-        description: form.description,
-        visibility: form.visibility,
-        tags: form.tags
-          .split(',')
-          .map((tag) => tag.trim())
-          .filter(Boolean),
-        ingredients: [
-          {
-            name: form.ingredientName,
-            amount: form.ingredientAmount,
-            unit: form.ingredientUnit,
-          },
-        ],
-        instructions: form.instructions
-          .split('|')
-          .map((step) => step.trim())
-          .filter(Boolean),
-        nutrition: {
-          calories: Number(form.calories),
-          protein: Number(form.protein),
-          carbs: Number(form.carbs),
-          fats: Number(form.fats),
-        },
-      })
+      await createRecipe(payload)
 
       setCreateOpen(false)
-      setForm(initialFormState)
       await loadRecipes()
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to create recipe'
@@ -115,112 +61,19 @@ function RecipesPage() {
   const cardRecipes = recipes.map((recipe) => ({
     id: recipe.slug,
     name: recipe.title,
-    mealType: recipe.tags?.[0] ?? recipe.visibility,
-    goal: recipe.tags?.[1] ?? 'General',
+    mealType: recipe.mealTypes?.[0] ?? recipe.visibility,
+    goal: recipe.diets?.[0] ?? recipe.cuisines?.[0] ?? 'General',
   }))
 
   return (
     <div className="h-full flex flex-col gap-6">
-      <Modal
+      <CreateRecipeModal
         opened={createOpen}
+        loading={createLoading}
+        error={createError}
         onClose={() => setCreateOpen(false)}
-        title="Create Recipe"
-        centered
-      >
-        <Stack gap="sm">
-          {createError && <Text c="red.5" size="sm">{createError}</Text>}
-
-          <TextInput
-            label="Title"
-            value={form.title}
-            onChange={(event) => setForm((prev) => ({ ...prev, title: event.currentTarget.value }))}
-            required
-          />
-          <Textarea
-            label="Description"
-            minRows={2}
-            value={form.description}
-            onChange={(event) => setForm((prev) => ({ ...prev, description: event.currentTarget.value }))}
-            required
-          />
-          <Select
-            label="Visibility"
-            data={[
-              { value: 'public', label: 'Public' },
-              { value: 'private', label: 'Private' },
-            ]}
-            value={form.visibility}
-            onChange={(value) => setForm((prev) => ({ ...prev, visibility: (value as 'public' | 'private') ?? 'public' }))}
-          />
-          <TextInput
-            label="Tags"
-            description="Comma-separated"
-            value={form.tags}
-            onChange={(event) => setForm((prev) => ({ ...prev, tags: event.currentTarget.value }))}
-          />
-
-          <TextInput
-            label="Ingredient Name"
-            value={form.ingredientName}
-            onChange={(event) => setForm((prev) => ({ ...prev, ingredientName: event.currentTarget.value }))}
-            required
-          />
-          <div className="grid grid-cols-2 gap-2">
-            <TextInput
-              label="Ingredient Amount"
-              value={form.ingredientAmount}
-              onChange={(event) => setForm((prev) => ({ ...prev, ingredientAmount: event.currentTarget.value }))}
-              required
-            />
-            <TextInput
-              label="Ingredient Unit"
-              value={form.ingredientUnit}
-              onChange={(event) => setForm((prev) => ({ ...prev, ingredientUnit: event.currentTarget.value }))}
-              required
-            />
-          </div>
-
-          <Textarea
-            label="Instructions"
-            description="Separate steps with |"
-            minRows={2}
-            value={form.instructions}
-            onChange={(event) => setForm((prev) => ({ ...prev, instructions: event.currentTarget.value }))}
-            required
-          />
-
-          <div className="grid grid-cols-2 gap-2">
-            <TextInput
-              label="Calories"
-              value={form.calories}
-              onChange={(event) => setForm((prev) => ({ ...prev, calories: event.currentTarget.value }))}
-              required
-            />
-            <TextInput
-              label="Protein"
-              value={form.protein}
-              onChange={(event) => setForm((prev) => ({ ...prev, protein: event.currentTarget.value }))}
-              required
-            />
-            <TextInput
-              label="Carbs"
-              value={form.carbs}
-              onChange={(event) => setForm((prev) => ({ ...prev, carbs: event.currentTarget.value }))}
-              required
-            />
-            <TextInput
-              label="Fats"
-              value={form.fats}
-              onChange={(event) => setForm((prev) => ({ ...prev, fats: event.currentTarget.value }))}
-              required
-            />
-          </div>
-
-          <Button loading={createLoading} onClick={handleCreateRecipe}>
-            Create Recipe
-          </Button>
-        </Stack>
-      </Modal>
+        onSubmit={handleCreateRecipe}
+      />
 
       {/* Page header */}
       <div
@@ -302,7 +155,10 @@ function RecipesPage() {
             </div>
 
             <Button
-              onClick={() => setCreateOpen(true)}
+              onClick={() => {
+                setCreateError('')
+                setCreateOpen(true)
+              }}
               size="xs"
               radius="md"
               style={{
