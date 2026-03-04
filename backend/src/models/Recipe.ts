@@ -19,11 +19,19 @@ export interface IRecipe extends Document {
   slug: string;
   description?: string;
   image?: string;
-  visibility: "private" | "public";
-  tags: string[];
+  visibility: "private" | "public" | "unlisted";
+  diets: string[];
+  mealTypes: string[];
+  cuisines: string[];
+  primaryProtein?: string;
+  prepTime: number;
+  cookTime: number;
+  totalTime: number;
+  servings: number;
+  servingSize?: string;
   ingredients: IIngredient[];
-  instructions: string[];
-  nutrition: INutrition;
+  steps: string[];
+  nutritionPerServing: INutrition;
   deletedAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
@@ -55,11 +63,19 @@ const recipeSchema = new Schema<IRecipe>(
     slug: { type: String, required: true, unique: true, trim: true, lowercase: true, index: true },
     description: { type: String },
     image: { type: String },
-    visibility: { type: String, enum: ["private", "public"], default: "private" },
-    tags: [{ type: String, trim: true }],
+    visibility: { type: String, enum: ["private", "public", "unlisted"], default: "private" },
+    diets: { type: [String], default: [] },
+    mealTypes: { type: [String], default: [] },
+    cuisines: { type: [String], default: [] },
+    primaryProtein: { type: String, default: '' },
+    prepTime: { type: Number, default: 0, min: 0 },
+    cookTime: { type: Number, default: 0, min: 0 },
+    totalTime: { type: Number, default: 0, min: 0 },
+    servings: { type: Number, default: 1, min: 1 },
+    servingSize: { type: String, default: '' },
     ingredients: { type: [ingredientSchema], required: true },
-    instructions: { type: [String], required: true },
-    nutrition: { type: nutritionSchema, required: true },
+    steps: { type: [String], required: true },
+    nutritionPerServing: { type: nutritionSchema, required: true },
     deletedAt: { type: Date, default: null, index: true },
   },
   { timestamps: true }
@@ -75,6 +91,12 @@ recipeSchema.pre<IRecipe>('validate', function (next) {
       .substring(0, 64);
   }
   if (typeof next === 'function') next();
+});
+
+recipeSchema.pre<IRecipe>('save', function () {
+  if (this.totalTime === 0 && (this.prepTime > 0 || this.cookTime > 0)) {
+    this.totalTime = this.prepTime + this.cookTime;
+  }
 });
 
 export const Recipe = mongoose.model<IRecipe>("Recipe", recipeSchema);
