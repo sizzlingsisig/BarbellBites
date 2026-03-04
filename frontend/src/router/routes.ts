@@ -8,7 +8,7 @@ import SignupPage from '../pages/SignupPage'
 
 export const ROUTE_PATHS = {
   RECIPES: '/',
-  RECIPE_DETAIL: '/recipes/:recipeId',
+  RECIPE_DETAIL: '/recipes/:slug',
   FAVORITES: '/favorites',
   AUTH: '/login',
   REGISTER: '/register',

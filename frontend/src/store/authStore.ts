@@ -9,7 +9,7 @@ import {
   type AuthUser,
   type LoginInput,
   type RegisterInput,
-} from '../services/authService'
+} from '../api/authApi'
 
 type ApiErrorResponse = {
   message?: string
