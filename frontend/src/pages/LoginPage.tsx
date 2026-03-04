@@ -3,6 +3,7 @@ import { Button, Stack, Text, Title, TextInput, PasswordInput, Alert } from '@ma
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 import AuthLayout from '../layouts/AuthLayout'
+import { notifyError, notifySuccess } from '../services/notify'
 
 function LoginPage() {
   const navigate = useNavigate()
@@ -15,9 +16,18 @@ function LoginPage() {
     e.preventDefault()
     try {
       await login({ email, password })
+      notifySuccess({
+        title: 'Signed In',
+        message: 'Welcome back to Barbell Bites.',
+      })
       navigate('/')
     } catch (err) {
       console.error('Login failed', err)
+      const message = err instanceof Error ? err.message : 'Unable to sign in. Please try again.'
+      notifyError({
+        title: 'Sign In Failed',
+        message,
+      })
     }
   }
 

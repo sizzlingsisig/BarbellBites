@@ -3,6 +3,7 @@ import { Button, Grid, Text, Title } from '@mantine/core'
 import { RecipeCard } from '../components/RecipeCard'
 import { createRecipe, getRecipes, type RecipeMutationPayload } from '../api/recipesApi'
 import CreateRecipeModal from '../components/CreateRecipeModal'
+import { notifyError, notifySuccess } from '../services/notify'
 
 type RecipeApiItem = {
   _id: string
@@ -47,12 +48,20 @@ function RecipesPage() {
       setCreateLoading(true)
 
       await createRecipe(payload)
+      notifySuccess({
+        title: 'Recipe Created',
+        message: 'Your recipe was saved successfully.',
+      })
 
       setCreateOpen(false)
       await loadRecipes()
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to create recipe'
       setCreateError(message)
+      notifyError({
+        title: 'Create Recipe Failed',
+        message,
+      })
     } finally {
       setCreateLoading(false)
     }

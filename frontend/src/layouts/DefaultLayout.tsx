@@ -4,11 +4,27 @@ import { useState, type PropsWithChildren } from 'react'
 import NavButton from '../components/NavButton.tsx'
 import { ROUTE_PATHS } from '../router/routes'
 import { useAuthStore } from '../store/authStore'
+import { notifyError, notifySuccess } from '../services/notify'
 
 function DefaultLayout({ children }: PropsWithChildren) {
   const user = useAuthStore((state) => state.user)
   const logout = useAuthStore((state) => state.logout)
   const [searchTerm, setSearchTerm] = useState('')
+  const handleLogout = async () => {
+    try {
+      await logout()
+      notifySuccess({
+        title: 'Logged Out',
+        message: 'You have been signed out successfully.',
+      })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unable to log out. Please try again.'
+      notifyError({
+        title: 'Logout Failed',
+        message,
+      })
+    }
+  }
   // theme variable removed
   // Removed unused variable 'slate'
 
@@ -176,7 +192,9 @@ function DefaultLayout({ children }: PropsWithChildren) {
               <Button
                 fullWidth
                 leftSection={<IconLogout size={14} />}
-                onClick={() => void logout()}
+                onClick={() => {
+                  void handleLogout()
+                }}
                 styles={{
                   root: {
                     background: 'rgba(255,255,255,0.04)',

@@ -3,6 +3,7 @@ import { Button, Stack, Text, Title, TextInput, PasswordInput } from '@mantine/c
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import AuthLayout from '../layouts/AuthLayout';
+import { notifyError, notifySuccess } from '../services/notify';
 
 const inputStyles = {
   input: {
@@ -39,9 +40,18 @@ function SignupPage() {
     e.preventDefault();
     try {
       await register({ name, email, password });
+      notifySuccess({
+        title: 'Account Created',
+        message: 'Welcome to Barbell Bites.',
+      });
       navigate('/');
     } catch (err) {
       console.error('Registration failed', err);
+      const message = err instanceof Error ? err.message : 'Unable to create account. Please try again.';
+      notifyError({
+        title: 'Sign Up Failed',
+        message,
+      });
     }
   };
 
