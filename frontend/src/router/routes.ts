@@ -3,12 +3,14 @@ import LoginPage from '../pages/LoginPage'
 import RecipesPage from '../pages/RecipesPage'
 import RecipeDetailPage from '../pages/RecipeDetailPage'
 import FavoritesPage from '../pages/FavoritesPage'
+import MyRecipesPage from '../pages/MyRecipesPage'
 import NotFoundPage from '../pages/NotFoundPage'
 import SignupPage from '../pages/SignupPage'
 
 export const ROUTE_PATHS = {
   RECIPES: '/',
   RECIPE_DETAIL: '/recipes/:slug',
+  MY_RECIPES: '/my-recipes',
   FAVORITES: '/favorites',
   AUTH: '/login',
   REGISTER: '/register',
@@ -65,6 +67,15 @@ export const appRoutes: AppRoute[] = [
     component: RecipeDetailPage,
     meta: {
       title: 'BarbellBites | View Recipe',
+      requiresAuth: true,
+      layout: ROUTE_LAYOUTS.DEFAULT,
+    },
+  },
+  {
+    path: ROUTE_PATHS.MY_RECIPES,
+    component: MyRecipesPage,
+    meta: {
+      title: 'BarbellBites | My Recipes',
       requiresAuth: true,
       layout: ROUTE_LAYOUTS.DEFAULT,
     },

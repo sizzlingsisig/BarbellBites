@@ -1,17 +1,30 @@
 import { useEffect, useRef, useState } from 'react'
-import { Badge, Stack, Text, Title, Grid, ThemeIcon, ActionIcon, Loader } from '@mantine/core'
+import { Badge, Stack, Text, Title, Grid, ThemeIcon, ActionIcon, Loader, Group, Button } from '@mantine/core'
 import PLACEHOLDER_IMAGE from '../components/PlaceholderImage'
 import { IconShoppingCart, IconChefHat, IconClock, IconFlame, IconUsers } from '../components/RecipeIcons'
-import { Link, useParams } from 'react-router-dom'
-import { getRecipeById } from '../api/recipesApi'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import CreateRecipeModal from '../components/CreateRecipeModal'
+import ConfirmDeleteModal from '../components/ConfirmDeleteModal'
+import { getRecipeById, updateRecipe, type RecipeMutationPayload } from '../api/recipesApi'
+import { useAuthStore } from '../store/authStore'
+import { notifyError, notifySuccess } from '../services/notify'
+import { useRecipeDeleteWithUndo } from '../hooks/useRecipeDeleteWithUndo'
 
 type RecipeResponse = {
+  _id?: string
+  slug?: string
+  owner?: string | { _id?: string; id?: string }
   title: string
   description?: string
+  visibility?: 'public' | 'private' | 'unlisted'
+  diets?: string[]
+  mealTypes?: string[]
+  cuisines?: string[]
   prepTime?: number
   cookTime?: number
   totalTime?: number
   servings?: number
+  servingSize?: string
   image?: string
   ingredients?: Array<{ name: string; amount: string; unit?: string }>
   steps?: string[]
@@ -28,6 +41,36 @@ type RecipeResponse = {
     carbs: number
     fats: number
   }
+}
+
+const extractId = (value: unknown): string | undefined => {
+  if (!value) {
+    return undefined
+  }
+
+  if (typeof value === 'string') {
+    return value
+  }
+
+  if (typeof value !== 'object') {
+    return undefined
+  }
+
+  const record = value as Record<string, unknown>
+  const possibleId = record._id ?? record.id ?? record.$oid
+
+  if (typeof possibleId === 'string') {
+    return possibleId
+  }
+
+  if (possibleId && typeof possibleId === 'object') {
+    const nested = possibleId as Record<string, unknown>
+    if (typeof nested.$oid === 'string') {
+      return nested.$oid
+    }
+  }
+
+  return undefined
 }
 
 const glassPanel = {
@@ -47,10 +90,16 @@ const ShimmerLine = () => (
 
 function RecipeDetailPage() {
   const { slug } = useParams<{ slug: string }>()
+  const navigate = useNavigate()
+  const currentUser = useAuthStore((state) => state.user)
   const [recipe, setRecipe] = useState<RecipeResponse | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [editOpen, setEditOpen] = useState(false)
+  const [editLoading, setEditLoading] = useState(false)
+  const [editError, setEditError] = useState('')
   const initialTitleRef = useRef(document.title)
+  const { openDeleteModal, modalProps } = useRecipeDeleteWithUndo()
 
   useEffect(() => {
     const loadRecipe = async () => {
@@ -104,6 +153,62 @@ function RecipeDetailPage() {
   const nutrition = recipe?.nutritionPerServing ?? recipe?.nutrition
   const ingredients = recipe?.ingredients ?? []
   const steps = recipe?.steps ?? recipe?.instructions ?? []
+  const ownerId = extractId(recipe?.owner)
+  const currentUserId = extractId(currentUser)
+  const canManageRecipe = Boolean(currentUserId) && (!ownerId || ownerId === currentUserId)
+
+  const editInitialValues: RecipeMutationPayload | null = recipe
+    ? {
+        title: recipe.title,
+        description: recipe.description ?? '',
+        visibility: recipe.visibility === 'private' ? 'private' : 'public',
+        prepTime: recipe.prepTime ?? 0,
+        cookTime: recipe.cookTime ?? 0,
+        totalTime: recipe.totalTime ?? (recipe.prepTime ?? 0) + (recipe.cookTime ?? 0),
+        servings: recipe.servings ?? 1,
+        servingSize: recipe.servingSize ?? '',
+        diets: recipe.diets ?? [],
+        mealTypes: recipe.mealTypes ?? [],
+        cuisines: recipe.cuisines ?? [],
+        ingredients: recipe.ingredients ?? [],
+        instructions: steps,
+        nutrition: {
+          calories: nutrition?.calories ?? 0,
+          protein: nutrition?.protein ?? 0,
+          carbs: nutrition?.carbs ?? 0,
+          fats: nutrition?.fats ?? 0,
+        },
+      }
+    : null
+
+  const handleUpdateRecipe = async (payload: RecipeMutationPayload) => {
+    if (!slug) {
+      return
+    }
+
+    try {
+      setEditLoading(true)
+      setEditError('')
+      await updateRecipe(slug, payload)
+      notifySuccess({
+        title: 'Recipe Updated',
+        message: 'Recipe details were updated successfully.',
+      })
+      setEditOpen(false)
+
+      const updated = await getRecipeById(slug)
+      setRecipe(updated as RecipeResponse)
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to update recipe'
+      setEditError(message)
+      notifyError({
+        title: 'Update Failed',
+        message,
+      })
+    } finally {
+      setEditLoading(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -160,6 +265,24 @@ function RecipeDetailPage() {
 
   return (
     <div className="h-full flex flex-col gap-5 overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
+      <CreateRecipeModal
+        opened={editOpen}
+        loading={editLoading}
+        error={editError}
+        onClose={() => {
+          if (!editLoading) {
+            setEditOpen(false)
+            setEditError('')
+          }
+        }}
+        onSubmit={handleUpdateRecipe}
+        mode="edit"
+        initialValues={editInitialValues}
+      />
+
+      <ConfirmDeleteModal
+        {...modalProps}
+      />
 
       {/* ── Hero ── */}
       <div
@@ -243,9 +366,10 @@ function RecipeDetailPage() {
           {/* Meta pills row */}
           <div className="flex flex-wrap gap-2">
             {[
+              { icon: <IconUsers size={13} />,  label: `Visibility: ${recipe.visibility ?? 'public'}` },
               { icon: <IconClock size={13} />,  label: `Prep ${recipe.prepTime ?? 0} min` },
               { icon: <IconFlame size={13} />,  label: `Cook ${recipe.cookTime ?? 0} min` },
-              { icon: <IconUsers size={13} />,  label: `Serves ${recipe.servings ?? 1}` },
+              { icon: <IconUsers size={13} />,  label: `Serves ${recipe.servings ?? 1}${recipe.servingSize ? ` (${recipe.servingSize})` : ''}` },
             ].map(({ icon, label }) => (
               <div
                 key={label}
@@ -263,7 +387,59 @@ function RecipeDetailPage() {
                 {label}
               </div>
             ))}
+
+            {(recipe.diets ?? []).map((diet) => (
+              <Badge key={`diet-${diet}`} size="sm" style={{ background: 'rgba(0,200,150,0.10)', border: '1px solid rgba(0,200,150,0.2)', color: '#1DDFBD' }}>
+                Diet: {diet}
+              </Badge>
+            ))}
+            {(recipe.mealTypes ?? []).map((mealType) => (
+              <Badge key={`meal-${mealType}`} size="sm" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.75)' }}>
+                Meal: {mealType}
+              </Badge>
+            ))}
+            {(recipe.cuisines ?? []).map((cuisine) => (
+              <Badge key={`cuisine-${cuisine}`} size="sm" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.75)' }}>
+                Cuisine: {cuisine}
+              </Badge>
+            ))}
           </div>
+
+          {canManageRecipe ? (
+            <Group mt="xs">
+              <Button size="xs" variant="light" color="teal" onClick={() => setEditOpen(true)}>
+                Edit Recipe
+              </Button>
+              <Button
+                size="xs"
+                variant="light"
+                color="red"
+                onClick={() => {
+                  if (!recipe) {
+                    return
+                  }
+
+                  const targetSlug = recipe.slug ?? slug
+                  if (!targetSlug) {
+                    return
+                  }
+
+                  openDeleteModal({
+                    slug: targetSlug,
+                    title: recipe.title,
+                    onDeleted: async () => {
+                      navigate('/')
+                    },
+                    onUndone: async () => {
+                      navigate('/')
+                    },
+                  })
+                }}
+              >
+                Delete Recipe
+              </Button>
+            </Group>
+          ) : null}
         </div>
       </div>
 

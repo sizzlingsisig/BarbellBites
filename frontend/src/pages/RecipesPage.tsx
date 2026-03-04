@@ -1,35 +1,33 @@
 import { useEffect, useState } from 'react'
-import { Button, Grid, Text, Title } from '@mantine/core'
+import { Button, Grid, Group, Text, Title } from '@mantine/core'
 import { RecipeCard } from '../components/RecipeCard'
-import { createRecipe, getRecipes, type RecipeMutationPayload } from '../api/recipesApi'
+import { createRecipe, getRecipes, type RecipeListItem, type RecipeMutationPayload } from '../api/recipesApi'
 import CreateRecipeModal from '../components/CreateRecipeModal'
 import { notifyError, notifySuccess } from '../services/notify'
-
-type RecipeApiItem = {
-  _id: string
-  slug: string
-  title: string
-  visibility: 'public' | 'private'
-  diets?: string[]
-  mealTypes?: string[]
-  cuisines?: string[]
-}
+import { RECIPES_REFRESH_EVENT } from '../hooks/useRecipeDeleteWithUndo'
 
 function RecipesPage() {
-  const [recipes, setRecipes] = useState<RecipeApiItem[]>([])
+  const [recipes, setRecipes] = useState<RecipeListItem[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [page, setPage] = useState(1)
+  const [limit] = useState(6)
+  const [totalPages, setTotalPages] = useState(0)
+  const [totalRecipes, setTotalRecipes] = useState(0)
 
   const [createOpen, setCreateOpen] = useState(false)
   const [createLoading, setCreateLoading] = useState(false)
   const [createError, setCreateError] = useState('')
 
-  const loadRecipes = async () => {
+  const loadRecipes = async (nextPage = page) => {
     try {
       setLoading(true)
       setError('')
-      const data = await getRecipes()
-      setRecipes(Array.isArray(data) ? data : [])
+      const data = await getRecipes({ page: nextPage, limit })
+      setRecipes(Array.isArray(data.items) ? data.items : [])
+      setTotalPages(data.pagination?.totalPages ?? 0)
+      setTotalRecipes(data.pagination?.total ?? 0)
+      setPage(data.pagination?.page ?? nextPage)
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to load recipes'
       setError(message)
@@ -39,8 +37,19 @@ function RecipesPage() {
   }
 
   useEffect(() => {
-    void loadRecipes()
-  }, [])
+    void loadRecipes(page)
+  }, [page])
+
+  useEffect(() => {
+    const onRefresh = () => {
+      void loadRecipes(1)
+    }
+
+    window.addEventListener(RECIPES_REFRESH_EVENT, onRefresh)
+    return () => {
+      window.removeEventListener(RECIPES_REFRESH_EVENT, onRefresh)
+    }
+  }, [page])
 
   const handleCreateRecipe = async (payload: RecipeMutationPayload) => {
     try {
@@ -54,12 +63,12 @@ function RecipesPage() {
       })
 
       setCreateOpen(false)
-      await loadRecipes()
+      await loadRecipes(1)
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to create recipe'
       setCreateError(message)
       notifyError({
-        title: 'Create Recipe Failed',
+        title: 'Create Recipe Failed: This recipe already exists.',
         message,
       })
     } finally {
@@ -70,8 +79,13 @@ function RecipesPage() {
   const cardRecipes = recipes.map((recipe) => ({
     id: recipe.slug,
     name: recipe.title,
+    description: recipe.description,
     mealType: recipe.mealTypes?.[0] ?? recipe.visibility,
     goal: recipe.diets?.[0] ?? recipe.cuisines?.[0] ?? 'General',
+    visibility: recipe.visibility,
+    totalTime: recipe.totalTime,
+    servings: recipe.servings,
+    calories: recipe.nutritionPerServing?.calories,
   }))
 
   return (
@@ -203,6 +217,22 @@ function RecipesPage() {
           </Grid.Col>
         ))}
       </Grid>
+
+      {!error && totalPages > 0 && (
+        <Group justify="space-between" align="center">
+          <Text size="sm" c="dimmed">
+            Page {page} of {totalPages} • {totalRecipes} total recipes
+          </Text>
+          <Group gap="sm">
+            <Button variant="default" size="xs" disabled={loading || page <= 1} onClick={() => setPage((prev) => Math.max(1, prev - 1))}>
+              Previous
+            </Button>
+            <Button variant="default" size="xs" disabled={loading || page >= totalPages} onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}>
+              Next
+            </Button>
+          </Group>
+        </Group>
+      )}
 
     </div>
   )

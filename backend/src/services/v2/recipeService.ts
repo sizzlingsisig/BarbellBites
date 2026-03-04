@@ -13,12 +13,24 @@ type RecipePayload = Partial<IRecipe> & {
 };
 
 type RecipeListQuery = {
+	page?: number;
+	limit?: number;
 	search?: string;
 	diet?: string;
 	mealType?: string;
 	cuisine?: string;
 	maxPrepTime?: number;
 	maxTotalTime?: number;
+};
+
+type PaginatedRecipesResult = {
+	items: IRecipe[];
+	pagination: {
+		page: number;
+		limit: number;
+		total: number;
+		totalPages: number;
+	};
 };
 
 type MongoFilter = Record<string, unknown>;
@@ -138,20 +150,61 @@ export async function undoDeleteRecipe(userId: string, slug: string) {
 	return recipe;
 }
 
-export async function listPublicRecipes(query: RecipeListQuery) {
+export async function listPublicRecipes(query: RecipeListQuery, userId?: string) {
+	const page = Math.max(1, query.page ?? 1);
+	const limit = Math.min(50, Math.max(1, query.limit ?? 10));
+	const skip = (page - 1) * limit;
+
 	const filter: MongoFilter = {
 		...buildRecipeFilters(query),
-		visibility: 'public',
 		deletedAt: null,
 	};
-	return Recipe.find(filter).limit(50).sort({ createdAt: -1 });
+
+	if (userId) {
+		filter.$or = [{ visibility: 'public' }, { owner: userId }];
+	} else {
+		filter.visibility = 'public';
+	}
+
+	const [items, total] = await Promise.all([
+		Recipe.find(filter).skip(skip).limit(limit).sort({ createdAt: -1 }),
+		Recipe.countDocuments(filter),
+	]);
+
+	return {
+		items: items as IRecipe[],
+		pagination: {
+			page,
+			limit,
+			total,
+			totalPages: total === 0 ? 0 : Math.ceil(total / limit),
+		},
+	} as PaginatedRecipesResult;
 }
 
 export async function listUserRecipes(userId: string, query: RecipeListQuery) {
+	const page = Math.max(1, query.page ?? 1);
+	const limit = Math.min(50, Math.max(1, query.limit ?? 10));
+	const skip = (page - 1) * limit;
+
 	const filter: MongoFilter = {
 		...buildRecipeFilters(query),
 		owner: userId,
 		deletedAt: null,
 	};
-	return Recipe.find(filter).limit(50).sort({ createdAt: -1 });
+
+	const [items, total] = await Promise.all([
+		Recipe.find(filter).skip(skip).limit(limit).sort({ createdAt: -1 }),
+		Recipe.countDocuments(filter),
+	]);
+
+	return {
+		items: items as IRecipe[],
+		pagination: {
+			page,
+			limit,
+			total,
+			totalPages: total === 0 ? 0 : Math.ceil(total / limit),
+		},
+	} as PaginatedRecipesResult;
 }

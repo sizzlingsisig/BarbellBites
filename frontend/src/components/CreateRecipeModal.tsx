@@ -56,6 +56,8 @@ type CreateRecipeModalProps = {
   error: string
   onClose: () => void
   onSubmit: (payload: RecipeMutationPayload) => Promise<void>
+  mode?: 'create' | 'edit'
+  initialValues?: RecipeMutationPayload | null
 }
 
 const initialFormState: CreateFormState = {
@@ -82,7 +84,40 @@ const stepDescriptions = ['Name and overview', 'Diets, meals, cuisines', 'Prep, 
 const lastStepIndex = stepLabels.length - 1
 const nextRowId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 
-function CreateRecipeModal({ opened, loading, error, onClose, onSubmit }: CreateRecipeModalProps) {
+const buildFormStateFromPayload = (payload: RecipeMutationPayload): CreateFormState => ({
+  title: payload.title ?? '',
+  description: payload.description ?? '',
+  visibility: payload.visibility ?? 'public',
+  diets: payload.diets ?? [],
+  mealTypes: payload.mealTypes ?? [],
+  cuisines: payload.cuisines ?? [],
+  prepTime: String(payload.prepTime ?? 0),
+  cookTime: String(payload.cookTime ?? 0),
+  servings: String(payload.servings ?? 1),
+  servingSize: payload.servingSize ?? '',
+  ingredients:
+    payload.ingredients?.length > 0
+      ? payload.ingredients.map((item, index) => ({
+          id: `ing-${index}-${nextRowId()}`,
+          name: item.name ?? '',
+          amount: item.amount ?? '',
+          unit: item.unit ?? '',
+        }))
+      : initialFormState.ingredients,
+  instructions:
+    payload.instructions?.length > 0
+      ? payload.instructions.map((item, index) => ({
+          id: `step-${index}-${nextRowId()}`,
+          text: item ?? '',
+        }))
+      : initialFormState.instructions,
+  calories: String(payload.nutrition?.calories ?? 0),
+  protein: String(payload.nutrition?.protein ?? 0),
+  carbs: String(payload.nutrition?.carbs ?? 0),
+  fats: String(payload.nutrition?.fats ?? 0),
+})
+
+function CreateRecipeModal({ opened, loading, error, onClose, onSubmit, mode = 'create', initialValues = null }: CreateRecipeModalProps) {
   const [form, setForm] = useState<CreateFormState>(initialFormState)
   const taxonomy = useRecipeTaxonomy(opened)
   const [step, setStep] = useState(0)
@@ -110,8 +145,13 @@ function CreateRecipeModal({ opened, loading, error, onClose, onSubmit }: Create
       setForm(initialFormState)
       setStep(0)
       setAttempted(false)
+      return
     }
-  }, [opened])
+
+    if (initialValues) {
+      setForm(buildFormStateFromPayload(initialValues))
+    }
+  }, [opened, initialValues])
 
   useEffect(() => {
     setAttempted(false)
@@ -349,10 +389,10 @@ function CreateRecipeModal({ opened, loading, error, onClose, onSubmit }: Create
         <Group justify="space-between" align="flex-start" gap="sm" mb="md">
           <div>
             <Text size="xs" style={{ color: '#00c896', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>
-              New Recipe
+              {mode === 'edit' ? 'Edit Recipe' : 'New Recipe'}
             </Text>
             <Title order={4} style={{ color: 'rgba(255,255,255,0.95)', fontWeight: 800 }}>
-              Create Recipe
+              {mode === 'edit' ? 'Update Recipe' : 'Create Recipe'}
             </Title>
           </div>
           <ActionIcon variant="subtle" color="gray" onClick={onClose} disabled={loading} aria-label="Close create recipe modal">
@@ -547,7 +587,7 @@ function CreateRecipeModal({ opened, loading, error, onClose, onSubmit }: Create
               </Button>
             ) : (
               <Button type="button" onClick={() => void handleSubmit()} loading={loading} disabled={isSubmitDisabled || !isStepValid}>
-                Submit
+                {mode === 'edit' ? 'Save Changes' : 'Submit'}
               </Button>
             )}
           </SimpleGrid>

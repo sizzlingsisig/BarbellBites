@@ -100,6 +100,7 @@ function DefaultLayout({ children }: PropsWithChildren) {
             {/* Nav buttons */}
             <Stack gap="xs" mb="md">
              <NavButton to={ROUTE_PATHS.RECIPES}   icon={<IconBook2 size={15} />}  label="Recipes"   variant="ghost" />
+              <NavButton to={ROUTE_PATHS.MY_RECIPES} icon={<IconBook2 size={15} />} label="My Recipes" variant="ghost" />
               <NavButton to={ROUTE_PATHS.FAVORITES} icon={<IconHeart size={15} />}  label="Favorites" variant="ghost"   />
             </Stack>
 

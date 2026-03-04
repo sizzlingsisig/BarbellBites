@@ -1,15 +1,22 @@
 import { Badge, Group, Stack, Text } from '@mantine/core'
 import { Link } from 'react-router-dom'
+import type { ReactNode } from 'react'
 import PLACEHOLDER_IMAGE from './PlaceholderImage'
 
 interface RecipeCardProps {
   id: string;
   name: string;
+  description?: string;
   mealType: string;
   goal: string;
+  visibility: 'public' | 'private' | 'unlisted';
+  totalTime?: number;
+  servings?: number;
+  calories?: number;
+  actionMenu?: ReactNode;
 }
 
-export function RecipeCard({ id, name, mealType, goal }: RecipeCardProps) {
+export function RecipeCard({ id, name, description, mealType, goal, visibility, totalTime, servings, calories, actionMenu }: RecipeCardProps) {
   return (
     <Link
       to={`/recipes/${id}`}
@@ -25,6 +32,18 @@ export function RecipeCard({ id, name, mealType, goal }: RecipeCardProps) {
           boxShadow: '0 4px 24px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06)',
         }}
       >
+        {actionMenu ? (
+          <div
+            className="absolute top-2 right-2 z-20"
+            onClick={(event) => {
+              event.preventDefault()
+              event.stopPropagation()
+            }}
+          >
+            {actionMenu}
+          </div>
+        ) : null}
+
         {/* Top teal shimmer line */}
         <div
           className="absolute top-0 left-6 right-6 h-px z-10"
@@ -79,6 +98,11 @@ export function RecipeCard({ id, name, mealType, goal }: RecipeCardProps) {
           >
             {name}
           </Text>
+          {description ? (
+            <Text size="xs" style={{ color: 'rgba(255,255,255,0.62)', lineHeight: 1.4 }} lineClamp={2}>
+              {description}
+            </Text>
+          ) : null}
           <Group gap="xs">
             <Badge
               size="xs"
@@ -110,6 +134,32 @@ export function RecipeCard({ id, name, mealType, goal }: RecipeCardProps) {
             >
               {goal}
             </Badge>
+            <Badge
+              size="xs"
+              style={{
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(255,255,255,0.12)',
+                color: 'rgba(255,255,255,0.6)',
+                fontWeight: 600,
+                letterSpacing: '0.06em',
+                textTransform: 'uppercase',
+                fontSize: '0.6rem',
+                backdropFilter: 'blur(8px)',
+              }}
+            >
+              {visibility}
+            </Badge>
+          </Group>
+          <Group gap="md">
+            <Text size="xs" style={{ color: 'rgba(255,255,255,0.5)' }}>
+              Time: {typeof totalTime === 'number' ? `${totalTime} min` : 'N/A'}
+            </Text>
+            <Text size="xs" style={{ color: 'rgba(255,255,255,0.5)' }}>
+              Servings: {typeof servings === 'number' ? servings : 'N/A'}
+            </Text>
+            <Text size="xs" style={{ color: 'rgba(255,255,255,0.5)' }}>
+              kcal: {typeof calories === 'number' ? calories : 'N/A'}
+            </Text>
           </Group>
         </Stack>
 

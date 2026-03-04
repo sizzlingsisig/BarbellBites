@@ -61,11 +61,23 @@ export async function deleteRecipe(req: Request, res: Response, next: NextFuncti
 	}
 }
 
+export async function undoDeleteRecipe(req: Request, res: Response, next: NextFunction) {
+	try {
+		const parsed = recipeSlugSchemaV2.parse(req)
+		const restored = await recipeService.undoDeleteRecipe(String(req.user!._id), parsed.params.slug)
+		if (!restored) return next(new AppError('Recipe not found or undo window expired', 404))
+		res.json(restored)
+	} catch (err) {
+		next(err)
+	}
+}
+
 export async function listPublicRecipes(req: Request, res: Response, next: NextFunction) {
 	try {
 		const parsed = listRecipesQuerySchemaV2.parse(req)
-		const recipes = await recipeService.listPublicRecipes(parsed.query)
-		res.json(recipes)
+		const userId = req.user?._id ? String(req.user._id) : undefined
+		const result = await recipeService.listPublicRecipes(parsed.query, userId)
+		res.json(result)
 	} catch (err) {
 		next(err)
 	}
@@ -74,8 +86,8 @@ export async function listPublicRecipes(req: Request, res: Response, next: NextF
 export async function listUserRecipes(req: Request, res: Response, next: NextFunction) {
 	try {
 		const parsed = listRecipesQuerySchemaV2.parse(req)
-		const recipes = await recipeService.listUserRecipes(String(req.user!._id), parsed.query)
-		res.json(recipes)
+		const result = await recipeService.listUserRecipes(String(req.user!._id), parsed.query)
+		res.json(result)
 	} catch (err) {
 		next(err)
 	}

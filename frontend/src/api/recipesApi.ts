@@ -32,8 +32,39 @@ export type RecipeTaxonomy = {
   cuisines: string[]
 }
 
-export const getRecipes = async () => {
-  const response = await api.get('/recipes')
+export type RecipeListItem = {
+  _id: string
+  slug: string
+  title: string
+  description?: string
+  visibility: 'public' | 'private' | 'unlisted'
+  diets?: string[]
+  mealTypes?: string[]
+  cuisines?: string[]
+  prepTime?: number
+  cookTime?: number
+  totalTime?: number
+  servings?: number
+  nutritionPerServing?: {
+    calories: number
+    protein: number
+    carbs: number
+    fats: number
+  }
+}
+
+export type PaginatedRecipesResponse = {
+  items: RecipeListItem[]
+  pagination: {
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+  }
+}
+
+export const getRecipes = async (params?: { page?: number; limit?: number; search?: string }) => {
+  const response = await api.get<PaginatedRecipesResponse>('/recipes', { params })
   return response.data
 }
 
@@ -62,7 +93,12 @@ export const deleteRecipe = async (slug: string) => {
   return response.data
 }
 
-export const getUserRecipes = async () => {
-  const response = await api.get('/recipes/mine')
+export const undoDeleteRecipe = async (slug: string) => {
+  const response = await api.post(`/recipes/${slug}/undo-delete`)
+  return response.data
+}
+
+export const getUserRecipes = async (params?: { page?: number; limit?: number; search?: string }) => {
+  const response = await api.get<PaginatedRecipesResponse>('/recipes/mine', { params })
   return response.data
 }
