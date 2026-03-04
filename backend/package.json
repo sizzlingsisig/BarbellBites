@@ -20,6 +20,8 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
+    "db:migrate": "tsx src/scripts/migrate.ts",
+    "db:reset": "tsx src/scripts/resetAndSeed.ts",
     "test:smoke": "cd BarbellBites && bru run Smoke -r --env Development --bail --noproxy",
     "test:edge": "cd BarbellBites && bru run Edge -r --env Development --bail --noproxy"
   },

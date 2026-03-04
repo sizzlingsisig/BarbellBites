@@ -1,4 +1,5 @@
 import { Recipe, IRecipe } from '../models/Recipe.js';
+import { RECIPE_DIETS } from '../constants/recipeTaxonomy.js';
 
 type RecipePayload = Partial<IRecipe> & {
 	tags?: string[];
@@ -16,7 +17,6 @@ type RecipeListQuery = {
 	diet?: string;
 	mealType?: string;
 	cuisine?: string;
-	primaryProtein?: string;
 	maxPrepTime?: number;
 	maxTotalTime?: number;
 };
@@ -31,9 +31,12 @@ function escapeRegex(value: string): string {
 
 function normalizeRecipePayload(data: RecipePayload): Partial<IRecipe> {
 	const next: RecipePayload = { ...data };
+	const dietSet = new Set(RECIPE_DIETS);
 
 	if (!next.diets && Array.isArray(next.tags)) {
-		next.diets = next.tags;
+		next.diets = next.tags.filter((value): value is (typeof RECIPE_DIETS)[number] =>
+			dietSet.has(value as (typeof RECIPE_DIETS)[number]),
+		);
 	}
 
 	if (!next.steps && Array.isArray(next.instructions)) {
@@ -76,9 +79,6 @@ function buildRecipeFilters(query: RecipeListQuery): MongoFilter {
 	}
 	if (query.cuisine) {
 		filter.cuisines = query.cuisine;
-	}
-	if (query.primaryProtein) {
-		filter.primaryProtein = query.primaryProtein;
 	}
 	if (typeof query.maxPrepTime === 'number') {
 		filter.prepTime = { $lte: query.maxPrepTime };
