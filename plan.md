@@ -3,16 +3,16 @@
 ## 1) MVP Product Scope
 
 ### Target user
-- Gym goers who want high-protein recipes and simple weekly meal planning.
+- Gym goers who want high-protein recipes with favorites and profile-based macro goals.
 
 ### MVP decisions (locked)
 - Ownership model: **Hybrid** (public recipes + user favorites).
-- Core features: **Recipe CRUD, Browse/Filter, Favorites, Meal Planner, Auth Profiles/Goals**.
-- Nutrition approach: **Both** manual macro entry and auto-calc support.
+- Core features: **Recipe CRUD, Browse/Filter, Favorites, Auth Profiles/Goals**.
+- Nutrition approach: **Manual macro entry in recipe payloads**.
 - Frontend complexity: **Moderate** (React Router + lightweight API layer).
 
 ### Success criteria
-- Users can register/login, set goals, create recipes, browse/filter recipes, favorite recipes, and add meals to a weekly planner.
+- Users can register/login, set goals, create recipes, browse/filter recipes, and favorite recipes.
 - App returns useful gym-specific data: calories + protein/carbs/fat per serving.
 - End-to-end flow works from frontend to backend with auth-protected actions.
 
@@ -40,19 +40,15 @@
    - Authenticated users can favorite/unfavorite any public recipe.
    - “My Favorites” list.
 
-5. **Meal Planner (Weekly)**
-   - Users can add a recipe to day + meal slot (breakfast/lunch/dinner/snack).
-   - View weekly plan with macro totals per day.
-
-6. **Nutrition Calculation Mode**
-   - Manual mode: creator enters macros directly.
-   - Auto-calc mode: ingredient quantities + nutrition source compute totals.
-   - For MVP auto-calc, start with a simple ingredient reference table and fallback to manual edit.
+5. **Profile Goals**
+   - Users can set/update calorie and protein goals.
+   - Goals are available for profile and future recommendation features.
 
 ## Nice-to-have (post-MVP)
 - Grocery list generation.
 - Community ratings/comments.
 - Progress tracking against goals.
+- Weekly meal planner.
 - Barcode or external food API integrations.
 
 ---
@@ -65,25 +61,19 @@ Leverage existing patterns (router → controller → service → model, zod val
 - Add models:
   - `Recipe`
   - `Favorite`
-  - `MealPlanEntry`
-  - `IngredientNutrition` (for auto-calc)
   - Extend `User` with `calorieGoal` and ensure `proteinGoal` persistence is aligned.
 
 - Add routes/controllers/services:
   - `recipeRoutes` / `recipeController` / `recipeService`
   - `favoriteRoutes` / `favoriteController` / `favoriteService`
-  - `mealPlanRoutes` / `mealPlanController` / `mealPlanService`
-  - optional `nutritionService` utility for auto-calc
 
 - Add request validators:
   - Recipe create/update/filter schema
   - Favorite toggle schema
-  - Meal-plan create/update schema
 
 - Update `server.ts` route mounting:
   - `/api/v1/recipes`
-  - `/api/v1/favorites`
-  - `/api/v1/meal-plan`
+   - `/api/v1/favorites`
 
 ### Frontend (`frontend/`)
 - Add React Router pages:
@@ -92,12 +82,11 @@ Leverage existing patterns (router → controller → service → model, zod val
   - `RecipeDetail`
   - `MyRecipes`
   - `Favorites`
-  - `MealPlanner`
   - `Profile` (goals)
 
 - Add lightweight API layer:
   - `api/client.ts` (base fetch wrapper, credentials, auth handling)
-  - Feature API modules (`recipesApi.ts`, `favoritesApi.ts`, `mealPlanApi.ts`, `authApi.ts`)
+   - Feature API modules (`recipesApi.ts`, `favoritesApi.ts`, `authApi.ts`)
 
 - Add app state:
   - Auth context/token state + user profile.
@@ -128,17 +117,6 @@ Leverage existing patterns (router → controller → service → model, zod val
 - `userId`, `recipeId`
 - unique index on (`userId`, `recipeId`)
 
-### MealPlanEntry
-- `userId`, `recipeId`
-- `date` (or week+day)
-- `mealSlot` (`breakfast` | `lunch` | `dinner` | `snack`)
-- `servingsPlanned`
-
-### IngredientNutrition
-- `ingredientName`, `unit`, macro values per unit (for auto-calc)
-
----
-
 ## 5) API Contract (MVP)
 
 ### Auth/Profile
@@ -162,12 +140,6 @@ Leverage existing patterns (router → controller → service → model, zod val
 - `POST /api/v1/favorites/:recipeId` (auth)
 - `DELETE /api/v1/favorites/:recipeId` (auth)
 
-### Meal Plan
-- `GET /api/v1/meal-plan?week=YYYY-WW` (auth)
-- `POST /api/v1/meal-plan` (auth)
-- `PATCH /api/v1/meal-plan/:id` (auth)
-- `DELETE /api/v1/meal-plan/:id` (auth)
-
 ---
 
 ## 6) Implementation Phases (Execution Plan)
@@ -183,18 +155,12 @@ Leverage existing patterns (router → controller → service → model, zod val
 - Add browse endpoint with filtering/search and basic pagination.
 - Frontend pages for recipe list/detail/create-edit.
 
-### Phase 2 — Favorites + Meal Planner (2–3 days)
+### Phase 2 — Favorites (1–2 days)
 - Implement favorites endpoints + frontend favorites page.
-- Implement weekly meal-plan endpoints + planner UI and daily macro totals.
 
-### Phase 3 — Nutrition auto-calc baseline (1–2 days)
-- Add `IngredientNutrition` reference data.
-- Implement service to calculate macros from ingredient lines.
-- Keep manual override enabled when ingredient mapping is incomplete.
-
-### Phase 4 — Hardening + MVP release (1 day)
+### Phase 3 — Hardening + MVP release (1 day)
 - Validation + error handling pass across all endpoints.
-- Smoke tests for auth, recipe, favorites, planner flows.
+- Smoke tests for auth, recipe, and favorites flows.
 - UX cleanup and README deployment/run instructions.
 
 ---
@@ -205,26 +171,21 @@ Leverage existing patterns (router → controller → service → model, zod val
 - [ ] Users can create/edit/delete own recipes.
 - [ ] Public browse supports search + gym-focused filters.
 - [ ] Favorite/unfavorite works and shows in dedicated page.
-- [ ] Weekly planner supports add/edit/remove meal entries.
-- [ ] Planner displays per-day macro totals.
-- [ ] Manual and auto nutrition paths both functional.
+- [ ] Profile goals are persisted and editable.
 - [ ] Core flows tested from frontend through backend.
 
 ---
 
 ## 8) Key Risks + Mitigations
 
-1. **Nutrition auto-calc complexity**
-   - Mitigation: seed a limited ingredient table and allow manual override.
-
-2. **Cookie auth + CORS issues in local dev**
+1. **Cookie auth + CORS issues in local dev**
    - Mitigation: explicit CORS origin, credentials enabled in frontend requests, consistent env config.
 
-3. **Scope creep (planner + nutrition + social features)**
+2. **Scope creep (post-MVP features + social features)**
    - Mitigation: lock MVP to listed endpoints/pages only.
 
-4. **Data quality for ingredients**
-   - Mitigation: normalize units and support fallback manual nutrition entry.
+3. **Data quality for nutrition input**
+   - Mitigation: enforce validation rules and clear field requirements in create/edit forms.
 
 ---
 
@@ -234,7 +195,5 @@ Leverage existing patterns (router → controller → service → model, zod val
 2. Recipe model + CRUD + browse filters.
 3. Frontend recipe pages and API integration.
 4. Favorites.
-5. Meal planner.
-6. Nutrition auto-calc baseline.
 
-This order gets usable value quickly while keeping nutrition complexity contained.
+This order gets usable value quickly while keeping MVP scope focused and shippable.

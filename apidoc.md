@@ -129,30 +129,6 @@ Favorite a recipe.
 ### DELETE /favorites/:recipeId
 Remove a favorite.
 
-## Meal Planner
-### GET /meal-plan
-Get weekly meal plan.
-- Query:
-  - `week=YYYY-WW`
-
-### POST /meal-plan
-Create planner entry.
-- Body:
-```json
-{
-  "recipeId": "<recipe_id>",
-  "date": "2026-03-02",
-  "mealSlot": "lunch",
-  "servingsPlanned": 1
-}
-```
-
-### PATCH /meal-plan/:id
-Update planner entry.
-
-### DELETE /meal-plan/:id
-Delete planner entry.
-
 ## HTTP Status Guide
 - `200` OK
 - `201` Created

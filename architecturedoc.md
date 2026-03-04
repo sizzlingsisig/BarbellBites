@@ -27,16 +27,68 @@ This document defines the MVP technical architecture for BarbellBites (gym-focus
 ### MVP domain modules to add
 - Recipe module: model, requests, routes, controller, service.
 - Favorite module: model, requests, routes, controller, service.
-- Meal planner module: model, requests, routes, controller, service.
-- Optional nutrition utility module for macro calculation.
+- User goals/profile module updates (`targetCalories`, `targetProtein`).
 
 ### Data model (MVP)
-- User: profile + goals (`proteinGoal`, `calorieGoal`).
-- Recipe: title, ingredients, instructions, tags, nutrition, visibility.
+- User: identity/auth + goals (`targetCalories`, `targetProtein`).
+- Recipe: ownership, metadata (`diets`, `mealTypes`, `cuisines`, `primaryProtein`), prep/cook timing, serving metadata, ingredients, steps, and `nutritionPerServing`.
 - Favorite: userId + recipeId unique pair.
-- MealPlanEntry: userId + recipeId + date/week + mealSlot + servings.
-- IngredientNutrition: ingredient/unit macro reference (auto-calc support).
+- Soft-delete support on recipes via `deletedAt`.
 
+
+### ERD (Target State)
+```mermaid
+erDiagram
+    USER {
+        ObjectId _id PK
+        string name
+        string email UK
+        string password_hash
+        string refreshToken
+        number targetCalories
+        number targetProtein
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    RECIPE {
+        ObjectId _id PK
+        ObjectId owner FK
+        string title
+        string slug UK
+        string description
+        string image
+        enum visibility
+        string[] diets
+        string[] mealTypes
+        string[] cuisines
+        string primaryProtein
+        number prepTime
+        number cookTime
+        number totalTime
+        number servings
+        string servingSize
+        json nutritionPerServing
+        json ingredients
+        string[] steps
+        datetime deletedAt
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    FAVORITE {
+        ObjectId _id PK
+        ObjectId userId FK
+        ObjectId recipeId FK
+        datetime createdAt
+    }
+
+    USER ||--o{ RECIPE : owns
+    USER ||--o{ FAVORITE : saves
+    RECIPE ||--o{ FAVORITE : is_saved
+```
+
+    
 ## Frontend Architecture
 ### App layers
 - Routing layer: page navigation and protected routes.
@@ -48,10 +100,10 @@ This document defines the MVP technical architecture for BarbellBites (gym-focus
 ### Planned page structure
 - Auth: Login/Register.
 - Recipes: Browse, Detail, My Recipes, Create/Edit.
-- User: Favorites, Meal Planner, Profile/Goals.
+- User: Favorites, Profile/Goals.
 
 ### State strategy
-- React Query: recipes/favorites/meal-plan data from API.
+- React Query: recipes/favorites/profile-goals data from API.
 - Zustand: auth user/session flags and global UI state.
 - Local component state: form-specific transient state.
 
@@ -69,9 +121,8 @@ This document defines the MVP technical architecture for BarbellBites (gym-focus
 ## Delivery Phases
 1. Foundation alignment (goals, auth/profile consistency, CORS credentials).
 2. Recipe core (CRUD + browse/search/filter).
-3. Favorites + meal planner.
-4. Nutrition auto-calc baseline.
-5. Hardening and release checks.
+3. Favorites.
+4. Hardening and release checks.
 
 ## Non-Goals (MVP)
 - Ratings/comments/social feed.
