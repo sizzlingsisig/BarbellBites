@@ -17,4 +17,5 @@ const favoriteSchema = new Schema<IFavorite>(
 
 favoriteSchema.index({ userId: 1, recipeId: 1 }, { unique: true });
 
-export const Favorite = mongoose.model<IFavorite>('Favorite', favoriteSchema);
+export const Favorite =
+	(mongoose.models.Favorite as mongoose.Model<IFavorite>) || mongoose.model<IFavorite>('Favorite', favoriteSchema);

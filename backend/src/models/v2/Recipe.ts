@@ -106,4 +106,5 @@ recipeSchema.pre<IRecipe>('save', function () {
 	}
 });
 
-export const Recipe = mongoose.model<IRecipe>('Recipe', recipeSchema);
+export const Recipe =
+	(mongoose.models.Recipe as mongoose.Model<IRecipe>) || mongoose.model<IRecipe>('Recipe', recipeSchema);

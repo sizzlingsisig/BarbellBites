@@ -11,11 +11,13 @@ import {
   SimpleGrid,
   Stack,
   Stepper,
+  TagsInput,
   Text,
   TextInput,
   Title,
 } from '@mantine/core'
 import type { RecipeMutationPayload } from '../api/recipesApi'
+import { useRecipeTaxonomy } from '../hooks/useRecipeTaxonomy'
 
 type IngredientRow = {
   id: string
@@ -33,9 +35,9 @@ type CreateFormState = {
   title: string
   description: string
   visibility: 'public' | 'private'
-  diets: string
-  mealTypes: string
-  cuisines: string
+  diets: string[]
+  mealTypes: string[]
+  cuisines: string[]
   prepTime: string
   cookTime: string
   servings: string
@@ -60,9 +62,9 @@ const initialFormState: CreateFormState = {
   title: '',
   description: '',
   visibility: 'public',
-  diets: '',
-  mealTypes: '',
-  cuisines: '',
+  diets: [],
+  mealTypes: [],
+  cuisines: [],
   prepTime: '0',
   cookTime: '0',
   servings: '1',
@@ -82,6 +84,7 @@ const nextRowId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}
 
 function CreateRecipeModal({ opened, loading, error, onClose, onSubmit }: CreateRecipeModalProps) {
   const [form, setForm] = useState<CreateFormState>(initialFormState)
+  const taxonomy = useRecipeTaxonomy(opened)
   const [step, setStep] = useState(0)
   const [attempted, setAttempted] = useState(false)
   const nextStep = () => setStep((current) => (current < lastStepIndex ? current + 1 : current))
@@ -115,11 +118,15 @@ function CreateRecipeModal({ opened, loading, error, onClose, onSubmit }: Create
   }, [step])
 
   const updateFormField =
-    (field: Exclude<keyof CreateFormState, 'visibility' | 'ingredients' | 'instructions'>) =>
+    (field: Exclude<keyof CreateFormState, 'visibility' | 'ingredients' | 'instructions' | 'diets' | 'mealTypes' | 'cuisines'>) =>
     (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       const { value } = event.currentTarget
       setForm((prev) => ({ ...prev, [field]: value }))
     }
+
+  const updateTagField = (field: 'diets' | 'mealTypes' | 'cuisines', values: string[]) => {
+    setForm((prev) => ({ ...prev, [field]: values }))
+  }
 
   const updateIngredientField = (index: number, field: keyof Omit<IngredientRow, 'id'>, value: string) => {
     setForm((prev) => ({
@@ -220,12 +227,14 @@ function CreateRecipeModal({ opened, loading, error, onClose, onSubmit }: Create
       totalTime: nonNegative(totalTime) ? '' : 'Total time is invalid.',
       servings: Number.isInteger(servingsNumber) && servingsNumber > 0 ? '' : 'Servings must be a positive whole number.',
       servingSize: form.servingSize.trim() ? '' : 'Serving size is required.',
-      ingredients: normalizedIngredients.length > 0 && normalizedIngredients.every((row) => row.name && row.amount && row.unit)
-        ? ''
-        : 'Each ingredient needs name, amount, and unit.',
-      instructions: normalizedInstructions.length > 0 && form.instructions.every((row) => row.text.trim())
-        ? ''
-        : 'Each instruction row must have text.',
+      ingredients:
+        normalizedIngredients.length > 0 && normalizedIngredients.every((row) => row.name && row.amount && row.unit)
+          ? ''
+          : 'Each ingredient needs name, amount, and unit.',
+      instructions:
+        normalizedInstructions.length > 0 && form.instructions.every((row) => row.text.trim())
+          ? ''
+          : 'Each instruction row must have text.',
       calories: nonNegative(nutrition.calories) ? '' : 'Calories must be non-negative.',
       protein: nonNegative(nutrition.protein) ? '' : 'Protein must be non-negative.',
       carbs: nonNegative(nutrition.carbs) ? '' : 'Carbs must be non-negative.',
@@ -296,18 +305,9 @@ function CreateRecipeModal({ opened, loading, error, onClose, onSubmit }: Create
       totalTime,
       servings: Number(form.servings),
       servingSize: form.servingSize,
-      diets: form.diets
-        .split(',')
-        .map((item) => item.trim())
-        .filter(Boolean),
-      mealTypes: form.mealTypes
-        .split(',')
-        .map((item) => item.trim())
-        .filter(Boolean),
-      cuisines: form.cuisines
-        .split(',')
-        .map((item) => item.trim())
-        .filter(Boolean),
+      diets: form.diets,
+      mealTypes: form.mealTypes,
+      cuisines: form.cuisines,
       ingredients: normalizedIngredients,
       instructions: normalizedInstructions,
       nutrition,
@@ -363,12 +363,16 @@ function CreateRecipeModal({ opened, loading, error, onClose, onSubmit }: Create
         <Divider mb="md" style={{ borderColor: 'rgba(255,255,255,0.12)' }} />
 
         <Stack gap="sm">
-          {error && <Text c="red.5" size="sm">{error}</Text>}
+          {error && (
+            <Text c="red.5" size="sm">
+              {error}
+            </Text>
+          )}
 
           <Stepper
             active={step}
-            onStepClick={(nextStep) => {
-              if (!loading) setStep(nextStep)
+            onStepClick={(nextStepValue) => {
+              if (!loading) setStep(nextStepValue)
             }}
             allowNextStepsSelect={false}
             color="teal"
@@ -398,7 +402,10 @@ function CreateRecipeModal({ opened, loading, error, onClose, onSubmit }: Create
                 <TextInput label="Recipe Description" value={form.description} onChange={updateFormField('description')} error={attempted ? fieldErrors.description : undefined} required />
                 <Select
                   label="Visibility"
-                  data={[{ value: 'public', label: 'Public' }, { value: 'private', label: 'Private' }]}
+                  data={[
+                    { value: 'public', label: 'Public' },
+                    { value: 'private', label: 'Private' },
+                  ]}
                   value={form.visibility}
                   onChange={(value) => setForm((prev) => ({ ...prev, visibility: (value as 'public' | 'private') ?? 'public' }))}
                 />
@@ -407,9 +414,33 @@ function CreateRecipeModal({ opened, loading, error, onClose, onSubmit }: Create
 
             <Stepper.Step label={stepLabels[1]} description={stepDescriptions[1]} color={stepHasError(1) && attempted ? 'red' : 'teal'}>
               <Stack gap="sm" mt="sm">
-                <TextInput label="Diets" description="Separate values with commas" value={form.diets} onChange={updateFormField('diets')} />
-                <TextInput label="Meal Types" description="Separate values with commas" value={form.mealTypes} onChange={updateFormField('mealTypes')} />
-                <TextInput label="Cuisines" description="Separate values with commas" value={form.cuisines} onChange={updateFormField('cuisines')} />
+                <TagsInput
+                  label="Diets"
+                  description="Search and press Enter to add"
+                  placeholder="Add diets"
+                  data={taxonomy.diets}
+                  value={form.diets}
+                  onChange={(values) => updateTagField('diets', values)}
+                  clearable
+                />
+                <TagsInput
+                  label="Meal Types"
+                  description="Search and press Enter to add"
+                  placeholder="Add meal types"
+                  data={taxonomy.mealTypes}
+                  value={form.mealTypes}
+                  onChange={(values) => updateTagField('mealTypes', values)}
+                  clearable
+                />
+                <TagsInput
+                  label="Cuisines"
+                  description="Search and press Enter to add"
+                  placeholder="Add cuisines"
+                  data={taxonomy.cuisines}
+                  value={form.cuisines}
+                  onChange={(values) => updateTagField('cuisines', values)}
+                  clearable
+                />
               </Stack>
             </Stepper.Step>
 
@@ -426,30 +457,46 @@ function CreateRecipeModal({ opened, loading, error, onClose, onSubmit }: Create
             <Stepper.Step label={stepLabels[3]} description={stepDescriptions[3]} color={stepHasError(3) && attempted ? 'red' : 'teal'}>
               <Stack gap="sm" mt="sm">
                 <Group justify="space-between">
-                  <Text size="sm" fw={600}>Ingredients</Text>
-                  <Button size="xs" variant="light" color="teal" onClick={addIngredientRow}>Add Ingredient Row</Button>
+                  <Text size="sm" fw={600}>
+                    Ingredients
+                  </Text>
+                  <Button size="xs" variant="light" color="teal" onClick={addIngredientRow}>
+                    Add Ingredient Row
+                  </Button>
                 </Group>
                 {form.ingredients.map((row, index) => (
                   <Group key={row.id} align="end" gap="xs" wrap="nowrap">
                     <TextInput style={{ flex: 2 }} label="Ingredient Name" value={row.name} onChange={(e) => updateIngredientField(index, 'name', e.currentTarget.value)} error={attempted && !row.name.trim() ? 'Required' : undefined} />
                     <TextInput style={{ flex: 1 }} label="Quantity" value={row.amount} onChange={(e) => updateIngredientField(index, 'amount', e.currentTarget.value)} error={attempted && !row.amount.trim() ? 'Required' : undefined} />
                     <TextInput style={{ flex: 1 }} label="Unit (g, ml, tbsp)" value={row.unit} onChange={(e) => updateIngredientField(index, 'unit', e.currentTarget.value)} error={attempted && !row.unit.trim() ? 'Required' : undefined} />
-                    <ActionIcon variant="subtle" color="red" onClick={() => removeIngredientRow(index)} disabled={form.ingredients.length === 1} aria-label="Remove ingredient">−</ActionIcon>
+                    <ActionIcon variant="subtle" color="red" onClick={() => removeIngredientRow(index)} disabled={form.ingredients.length === 1} aria-label="Remove ingredient">
+                      −
+                    </ActionIcon>
                   </Group>
                 ))}
 
                 <Divider style={{ borderColor: 'rgba(255,255,255,0.10)' }} />
 
                 <Group justify="space-between">
-                  <Text size="sm" fw={600}>Instructions</Text>
-                  <Button size="xs" variant="light" color="teal" onClick={addInstructionRow}>Add Instruction Step</Button>
+                  <Text size="sm" fw={600}>
+                    Instructions
+                  </Text>
+                  <Button size="xs" variant="light" color="teal" onClick={addInstructionRow}>
+                    Add Instruction Step
+                  </Button>
                 </Group>
                 {form.instructions.map((row, index) => (
                   <Group key={row.id} align="end" gap="xs" wrap="nowrap">
                     <TextInput style={{ flex: 1 }} label={`Instruction Step ${index + 1}`} value={row.text} onChange={(e) => updateInstructionField(index, e.currentTarget.value)} error={attempted && !row.text.trim() ? 'Required' : undefined} />
-                    <ActionIcon variant="subtle" color="gray" onClick={() => moveInstruction(index, -1)} disabled={index === 0} aria-label="Move up">↑</ActionIcon>
-                    <ActionIcon variant="subtle" color="gray" onClick={() => moveInstruction(index, 1)} disabled={index === form.instructions.length - 1} aria-label="Move down">↓</ActionIcon>
-                    <ActionIcon variant="subtle" color="red" onClick={() => removeInstructionRow(index)} disabled={form.instructions.length === 1} aria-label="Remove step">−</ActionIcon>
+                    <ActionIcon variant="subtle" color="gray" onClick={() => moveInstruction(index, -1)} disabled={index === 0} aria-label="Move up">
+                      ↑
+                    </ActionIcon>
+                    <ActionIcon variant="subtle" color="gray" onClick={() => moveInstruction(index, 1)} disabled={index === form.instructions.length - 1} aria-label="Move down">
+                      ↓
+                    </ActionIcon>
+                    <ActionIcon variant="subtle" color="red" onClick={() => removeInstructionRow(index)} disabled={form.instructions.length === 1} aria-label="Remove step">
+                      −
+                    </ActionIcon>
                   </Group>
                 ))}
 
@@ -478,8 +525,12 @@ function CreateRecipeModal({ opened, loading, error, onClose, onSubmit }: Create
           )}
 
           <SimpleGrid cols={3} spacing="sm" mt="sm">
-            <Button type="button" variant="default" onClick={onClose} disabled={loading}>Cancel</Button>
-            <Button type="button" variant="default" onClick={prevStep} disabled={loading || step === 0}>Back</Button>
+            <Button type="button" variant="default" onClick={onClose} disabled={loading}>
+              Cancel
+            </Button>
+            <Button type="button" variant="default" onClick={prevStep} disabled={loading || step === 0}>
+              Back
+            </Button>
             {step < lastStepIndex ? (
               <Button
                 type="button"

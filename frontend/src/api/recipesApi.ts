@@ -26,6 +26,12 @@ export type RecipeMutationPayload = {
   }
 }
 
+export type RecipeTaxonomy = {
+  diets: string[]
+  mealTypes: string[]
+  cuisines: string[]
+}
+
 export const getRecipes = async () => {
   const response = await api.get('/recipes')
   return response.data
@@ -33,6 +39,11 @@ export const getRecipes = async () => {
 
 export const getRecipeById = async (slug: string) => {
   const response = await api.get(`/recipes/${slug}`)
+  return response.data
+}
+
+export const getRecipeTaxonomy = async (): Promise<RecipeTaxonomy> => {
+  const response = await api.get('/recipes/meta/taxonomy')
   return response.data
 }
 
