@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Badge, Stack, Text, Title, Grid, ThemeIcon, ActionIcon, Loader, Group, Button } from '@mantine/core'
+import { Badge, Stack, Text, Title, Grid, ThemeIcon, ActionIcon, Loader, Group, Button, Menu } from '@mantine/core'
 import PLACEHOLDER_IMAGE from '../components/PlaceholderImage'
 import { IconShoppingCart, IconChefHat, IconClock, IconFlame, IconUsers } from '../components/RecipeIcons'
 import { Link, useNavigate, useParams } from 'react-router-dom'
@@ -74,6 +74,7 @@ const extractId = (value: unknown): string | undefined => {
   return undefined
 }
 
+// You can move these into your global css later if you want
 const glassPanel = {
   background: 'rgba(255,255,255,0.04)',
   backdropFilter: 'blur(32px) saturate(180%)',
@@ -89,6 +90,14 @@ const ShimmerLine = () => (
   />
 )
 
+const DotsIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="1" />
+    <circle cx="12" cy="5" r="1" />
+    <circle cx="12" cy="19" r="1" />
+  </svg>
+)
+
 function RecipeDetailPage() {
   const { slug } = useParams<{ slug: string }>()
   const navigate = useNavigate()
@@ -101,6 +110,10 @@ function RecipeDetailPage() {
   const [editError, setEditError] = useState('')
   const [isFavorite, setIsFavorite] = useState(false)
   const [favoriteLoading, setFavoriteLoading] = useState(false)
+  
+  // New state for interactive ingredients
+  const [checkedIngredients, setCheckedIngredients] = useState<number[]>([])
+  
   const initialTitleRef = useRef(document.title)
   const { openDeleteModal, modalProps } = useRecipeDeleteWithUndo()
 
@@ -266,6 +279,12 @@ function RecipeDetailPage() {
     }
   }
 
+  const toggleIngredient = (idx: number) => {
+    setCheckedIngredients(prev => 
+      prev.includes(idx) ? prev.filter(i => i !== idx) : [...prev, idx]
+    )
+  }
+
   if (loading) {
     return (
       <div className="h-full flex items-center justify-center">
@@ -291,7 +310,7 @@ function RecipeDetailPage() {
           <Title order={3} style={{ color: 'rgba(255,255,255,0.9)', marginBottom: 8 }}>
             Recipe doesn't exist
           </Title>
-          <Text style={{ color: 'rgba(255,255,255,0.45)', marginBottom: 24 }} size="sm">
+          <Text style={{ color: 'rgba(255,255,255,0.6)', marginBottom: 24 }} size="sm">
             {error || `No recipe found for slug: ${slug}`}
           </Text>
           <ActionIcon
@@ -347,27 +366,56 @@ function RecipeDetailPage() {
       >
         <ShimmerLine />
 
-        {/* Background image */}
+        {/* Adjusted Background image opacity for better contrast */}
         <img
           src={recipe.image || PLACEHOLDER_IMAGE}
           alt={recipe.title}
           className="absolute inset-0 w-full h-full object-cover"
-          style={{ opacity: 0.18 }}
+          style={{ opacity: 0.35 }}
           onError={e => { e.currentTarget.src = PLACEHOLDER_IMAGE }}
         />
-        {/* Gradient vignette */}
         <div
           className="absolute inset-0"
-          style={{ background: 'linear-gradient(135deg, rgba(10,15,13,0.85) 0%, rgba(10,15,13,0.5) 100%)' }}
+          style={{ background: 'linear-gradient(135deg, rgba(10,15,13,0.9) 0%, rgba(10,15,13,0.6) 100%)' }}
         />
-        {/* Teal floor glow */}
         <div
           className="absolute bottom-0 left-0 right-0 h-24 pointer-events-none"
           style={{ background: 'linear-gradient(to top, rgba(0,200,150,0.05), transparent)' }}
         />
 
+        {/* Admin Menu positioned top right */}
+        {canManageRecipe && (
+          <div className="absolute top-6 right-6 z-20">
+            <Menu shadow="md" width={200} position="bottom-end">
+              <Menu.Target>
+                <ActionIcon variant="subtle" radius="xl" style={{ color: 'rgba(255,255,255,0.8)' }}>
+                  <DotsIcon />
+                </ActionIcon>
+              </Menu.Target>
+              <Menu.Dropdown style={{ background: '#111b18', border: '1px solid rgba(255,255,255,0.1)' }}>
+                <Menu.Item style={{ color: 'white' }} onClick={() => setEditOpen(true)}>
+                  Edit Recipe
+                </Menu.Item>
+                <Menu.Item 
+                  color="red" 
+                  onClick={() => {
+                    if (!recipe || !recipe.slug) return
+                    openDeleteModal({
+                      slug: recipe.slug,
+                      title: recipe.title,
+                      onDeleted: async () => navigate('/'),
+                      onUndone: async () => navigate('/'),
+                    })
+                  }}
+                >
+                  Delete Recipe
+                </Menu.Item>
+              </Menu.Dropdown>
+            </Menu>
+          </div>
+        )}
+
         <div className="relative z-10 p-6 flex flex-col gap-4">
-          {/* Back + badge row */}
           <div className="flex items-center gap-3">
             <ActionIcon
               component={Link}
@@ -377,34 +425,33 @@ function RecipeDetailPage() {
               style={{
                 background: 'rgba(255,255,255,0.06)',
                 border: '1px solid rgba(255,255,255,0.10)',
-                color: 'rgba(255,255,255,0.7)',
+                color: 'rgba(255,255,255,0.9)',
                 flexShrink: 0,
               }}
             >
               ←
             </ActionIcon>
             <Badge
-              size="sm"
+              size="md"
               style={{
-                background: 'rgba(0,200,150,0.10)',
-                border: '1px solid rgba(0,200,150,0.25)',
+                background: 'rgba(0,200,150,0.15)',
+                border: '1px solid rgba(0,200,150,0.3)',
                 color: '#1DDFBD',
                 fontWeight: 700,
                 letterSpacing: '0.08em',
                 textTransform: 'uppercase',
-                fontSize: '0.6rem',
+                fontSize: '0.75rem',
               }}
             >
               Recipe
             </Badge>
           </div>
 
-          {/* Title + description */}
           <div>
             <Title
               order={1}
               style={{
-                color: 'rgba(255,255,255,0.95)',
+                color: 'rgba(255,255,255,0.98)',
                 fontWeight: 800,
                 fontSize: 'clamp(1.5rem, 3vw, 2.25rem)',
                 letterSpacing: '-0.02em',
@@ -414,27 +461,27 @@ function RecipeDetailPage() {
             >
               {recipe.title}
             </Title>
-            <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.9rem', lineHeight: 1.6 }}>
+            {/* Bumped text opacity for readability */}
+            <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.95rem', lineHeight: 1.6, maxWidth: '800px' }}>
               {recipe.description}
             </Text>
           </div>
 
-          {/* Meta pills row */}
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 mt-2">
             {[
-              { icon: <IconUsers size={13} />,  label: `Visibility: ${recipe.visibility ?? 'public'}` },
-              { icon: <IconClock size={13} />,  label: `Prep ${recipe.prepTime ?? 0} min` },
-              { icon: <IconFlame size={13} />,  label: `Cook ${recipe.cookTime ?? 0} min` },
-              { icon: <IconUsers size={13} />,  label: `Serves ${recipe.servings ?? 1}${recipe.servingSize ? ` (${recipe.servingSize})` : ''}` },
+              { icon: <IconUsers size={14} />,  label: `Visibility: ${recipe.visibility ?? 'public'}` },
+              { icon: <IconClock size={14} />,  label: `Prep ${recipe.prepTime ?? 0} min` },
+              { icon: <IconFlame size={14} />,  label: `Cook ${recipe.cookTime ?? 0} min` },
+              { icon: <IconUsers size={14} />,  label: `Serves ${recipe.servings ?? 1}${recipe.servingSize ? ` (${recipe.servingSize})` : ''}` },
             ].map(({ icon, label }) => (
               <div
                 key={label}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg"
                 style={{
-                  background: 'rgba(255,255,255,0.05)',
-                  border: '1px solid rgba(255,255,255,0.09)',
-                  color: 'rgba(255,255,255,0.6)',
-                  fontSize: '0.75rem',
+                  background: 'rgba(255,255,255,0.08)',
+                  border: '1px solid rgba(255,255,255,0.12)',
+                  color: 'rgba(255,255,255,0.8)',
+                  fontSize: '0.8rem',
                   fontWeight: 600,
                   letterSpacing: '0.03em',
                 }}
@@ -445,17 +492,17 @@ function RecipeDetailPage() {
             ))}
 
             {(recipe.diets ?? []).map((diet) => (
-              <Badge key={`diet-${diet}`} size="sm" style={{ background: 'rgba(0,200,150,0.10)', border: '1px solid rgba(0,200,150,0.2)', color: '#1DDFBD' }}>
+              <Badge key={`diet-${diet}`} size="md" style={{ background: 'rgba(0,200,150,0.10)', border: '1px solid rgba(0,200,150,0.2)', color: '#1DDFBD', fontSize: '0.75rem' }}>
                 Diet: {diet}
               </Badge>
             ))}
             {(recipe.mealTypes ?? []).map((mealType) => (
-              <Badge key={`meal-${mealType}`} size="sm" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.75)' }}>
+              <Badge key={`meal-${mealType}`} size="md" style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.9)', fontSize: '0.75rem' }}>
                 Meal: {mealType}
               </Badge>
             ))}
             {(recipe.cuisines ?? []).map((cuisine) => (
-              <Badge key={`cuisine-${cuisine}`} size="sm" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.75)' }}>
+              <Badge key={`cuisine-${cuisine}`} size="md" style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.9)', fontSize: '0.75rem' }}>
                 Cuisine: {cuisine}
               </Badge>
             ))}
@@ -463,52 +510,14 @@ function RecipeDetailPage() {
 
           <Group mt="xs">
             <Button
-              size="xs"
+              size="sm"
               variant="light"
               color={isFavorite ? 'red' : 'gray'}
               loading={favoriteLoading}
-              onClick={() => {
-                void handleToggleFavorite()
-              }}
+              onClick={() => { void handleToggleFavorite() }}
             >
               {isFavorite ? 'Unfavorite' : 'Add to Favorites'}
             </Button>
-
-            {canManageRecipe ? (
-              <>
-              <Button size="xs" variant="light" color="teal" onClick={() => setEditOpen(true)}>
-                Edit Recipe
-              </Button>
-              <Button
-                size="xs"
-                variant="light"
-                color="red"
-                onClick={() => {
-                  if (!recipe) {
-                    return
-                  }
-
-                  const targetSlug = recipe.slug ?? slug
-                  if (!targetSlug) {
-                    return
-                  }
-
-                  openDeleteModal({
-                    slug: targetSlug,
-                    title: recipe.title,
-                    onDeleted: async () => {
-                      navigate('/')
-                    },
-                    onUndone: async () => {
-                      navigate('/')
-                    },
-                  })
-                }}
-              >
-                Delete Recipe
-              </Button>
-              </>
-            ) : null}
           </Group>
         </div>
       </div>
@@ -517,12 +526,12 @@ function RecipeDetailPage() {
   {macros.map((macro) => (
     <Grid.Col span={{ base: 6, sm: 3 }} key={macro.label}>
       <div
-        className="relative rounded-xl p-4 text-center overflow-hidden transition-all duration-150 active:scale-[0.97] active:translate-y-px cursor-default"
+        className="relative rounded-xl p-4 text-center overflow-hidden transition-all duration-150 cursor-default"
         style={{
-          background: 'rgba(255,255,255,0.04)',
+          background: macro.label === 'Calories' ? 'rgba(0,200,150,0.08)' : 'rgba(255,255,255,0.04)',
           backdropFilter: 'blur(24px)',
           WebkitBackdropFilter: 'blur(24px)',
-          border: '1px solid rgba(255,255,255,0.08)',
+          border: macro.label === 'Calories' ? '1px solid rgba(0,200,150,0.3)' : '1px solid rgba(255,255,255,0.08)',
           boxShadow: '0 4px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)',
         }}
       >
@@ -530,7 +539,7 @@ function RecipeDetailPage() {
         <Text
           size="xs"
           style={{
-            color: 'rgba(0,200,150,0.75)' ,
+            color: macro.label === 'Calories' ? '#1DDFBD' : 'rgba(0,200,150,0.75)',
             fontWeight: 700,
             letterSpacing: '0.1em',
             textTransform: 'uppercase' as const,
@@ -543,7 +552,7 @@ function RecipeDetailPage() {
         <div className="flex items-baseline justify-center gap-1">
           <Text
             style={{
-              color: 'rgba(255,255,255,0.88)',
+              color: 'rgba(255,255,255,0.95)',
               fontWeight: 800,
               fontSize: '1.75rem',
               lineHeight: 1,
@@ -552,7 +561,7 @@ function RecipeDetailPage() {
           >
             {macro.value}
           </Text>
-          <Text style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.7rem', fontWeight: 600 }}>
+          <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.75rem', fontWeight: 600 }}>
             {macro.unit}
           </Text>
         </div>
@@ -575,9 +584,9 @@ function RecipeDetailPage() {
               <span style={{ color: '#00c896' }}><IconShoppingCart size={18} /></span>
               <Text
                 style={{
-                  color: 'rgba(255,255,255,0.9)',
+                  color: 'rgba(255,255,255,0.95)',
                   fontWeight: 800,
-                  fontSize: '1rem',
+                  fontSize: '1.1rem',
                   letterSpacing: '-0.01em',
                 }}
               >
@@ -586,10 +595,10 @@ function RecipeDetailPage() {
               <div
                 className="ml-auto px-2 py-0.5 rounded-md"
                 style={{
-                  background: 'rgba(0,200,150,0.08)',
-                  border: '1px solid rgba(0,200,150,0.2)',
+                  background: 'rgba(0,200,150,0.15)',
+                  border: '1px solid rgba(0,200,150,0.3)',
                   color: '#FAFBFB',
-                  fontSize: '0.65rem',
+                  fontSize: '0.7rem',
                   fontWeight: 700,
                   letterSpacing: '0.06em',
                 }}
@@ -599,43 +608,54 @@ function RecipeDetailPage() {
             </div>
 
             <Stack gap={0}>
-              {ingredients.map((ing, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-center justify-between py-3"
-                  style={{
-                    borderBottom: idx < ingredients.length - 1
-                      ? '1px solid rgba(255,255,255,0.05)'
-                      : 'none',
-                  }}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <div
-                      className="w-1 h-4 rounded-full"
-                      style={{ background: 'rgba(0,200,150,0.4)' }}
-                    />
-                    <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.85rem', fontWeight: 500 }}>
-                      {ing.name}
-                    </Text>
-                  </div>
-                  <Badge
-                    size="sm"
+              {ingredients.map((ing, idx) => {
+                const isChecked = checkedIngredients.includes(idx)
+                return (
+                  <div
+                    key={idx}
+                    onClick={() => toggleIngredient(idx)}
+                    className="flex items-center justify-between py-3 cursor-pointer transition-colors px-2 -mx-2 rounded-md hover:bg-white/5"
                     style={{
-                      background: 'rgba(0,200,150,0.08)',
-                      border: '1px solid rgba(0,200,150,0.2)',
-                      color: '#FAFBFB',
-                      fontWeight: 700,
-                      fontSize: '0.65rem',
-                      letterSpacing: '0.04em',
+                      borderBottom: idx < ingredients.length - 1
+                        ? '1px solid rgba(255,255,255,0.08)'
+                        : 'none',
+                      opacity: isChecked ? 0.4 : 1,
                     }}
                   >
-                    {`${ing.amount}${ing.unit ? ` ${ing.unit}` : ''}`}
-                  </Badge>
-                </div>
-              ))}
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`w-3.5 h-3.5 rounded-full border transition-colors ${
+                          isChecked ? 'bg-[#00c896] border-[#00c896]' : 'border-gray-500'
+                        }`}
+                      />
+                      <Text style={{ 
+                        color: 'rgba(255,255,255,0.85)', 
+                        fontSize: '0.9rem', 
+                        fontWeight: 500,
+                        textDecoration: isChecked ? 'line-through' : 'none'
+                      }}>
+                        {ing.name}
+                      </Text>
+                    </div>
+                    <Badge
+                      size="sm"
+                      style={{
+                        background: 'rgba(255,255,255,0.08)',
+                        border: '1px solid rgba(255,255,255,0.15)',
+                        color: '#FAFBFB',
+                        fontWeight: 700,
+                        fontSize: '0.7rem',
+                        letterSpacing: '0.04em',
+                      }}
+                    >
+                      {`${ing.amount}${ing.unit ? ` ${ing.unit}` : ''}`}
+                    </Badge>
+                  </div>
+                )
+              })}
 
               {ingredients.length === 0 && (
-                <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem' }}>
+                <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem' }}>
                   No ingredients listed.
                 </Text>
               )}
@@ -654,9 +674,9 @@ function RecipeDetailPage() {
               <span style={{ color: '#00c896' }}><IconChefHat size={18} /></span>
               <Text
                 style={{
-                  color: 'rgba(255,255,255,0.9)',
+                  color: 'rgba(255,255,255,0.95)',
                   fontWeight: 800,
-                  fontSize: '1rem',
+                  fontSize: '1.1rem',
                   letterSpacing: '-0.01em',
                 }}
               >
@@ -671,13 +691,12 @@ function RecipeDetailPage() {
                     size={36}
                     radius="xl"
                     style={{
-                      background: 'rgba(0,200,150,0.10)',
-                      border: '1px solid rgba(0,200,150,0.25)',
+                      background: 'rgba(0,200,150,0.15)',
+                      border: '1px solid rgba(0,200,150,0.3)',
                       color: '#1DDFBD',
                       fontWeight: 800,
-                      fontSize: '0.8rem',
+                      fontSize: '0.85rem',
                       flexShrink: 0,
-                      transition: 'all 0.2s ease',
                     }}
                   >
                     {idx + 1}
@@ -686,23 +705,22 @@ function RecipeDetailPage() {
                     <Text
                       size="xs"
                       style={{
-                        color: 'rgba(0,200,150,0.6)',
+                        color: 'rgba(0,200,150,0.8)',
                         fontWeight: 700,
                         letterSpacing: '0.1em',
                         textTransform: 'uppercase',
-                        marginBottom: 4,
+                        marginBottom: 6,
                       }}
                     >
                       Step {idx + 1}
                     </Text>
-                    <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.9rem', lineHeight: 1.7 }}>
+                    <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.95rem', lineHeight: 1.7 }}>
                       {step}
                     </Text>
-                    {/* Step divider */}
                     {idx < steps.length - 1 && (
                       <div
-                        className="mt-4 ml-0 h-px"
-                        style={{ background: 'rgba(255,255,255,0.05)' }}
+                        className="mt-5 ml-0 h-px"
+                        style={{ background: 'rgba(255,255,255,0.08)' }}
                       />
                     )}
                   </div>
@@ -710,7 +728,7 @@ function RecipeDetailPage() {
               ))}
 
               {steps.length === 0 && (
-                <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem' }}>
+                <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem' }}>
                   No instructions listed.
                 </Text>
               )}
