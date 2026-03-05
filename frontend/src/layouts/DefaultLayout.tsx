@@ -8,6 +8,16 @@ import { ROUTE_PATHS } from '../router/routes'
 import { useAuthStore } from '../store/authStore'
 import { notifyError, notifySuccess } from '../services/notify'
 
+/**
+ * Convert UI labels -> backend-safe query values
+ * "High Protein" -> "high-protein"
+ * "Low Carb" -> "low-carb"
+ * "Mexican" -> "mexican"
+ */
+function toParamValue(label: string) {
+  return label.trim().toLowerCase().replace(/\s+/g, '-')
+}
+
 function DefaultLayout({ children }: PropsWithChildren) {
   const user = useAuthStore((state) => state.user)
   const logout = useAuthStore((state) => state.logout)
@@ -16,10 +26,9 @@ function DefaultLayout({ children }: PropsWithChildren) {
   const navigate = useNavigate()
   const location = useLocation()
 
-  // Local input state (controlled)
   const [searchTerm, setSearchTerm] = useState(searchParams.get('search') ?? '')
 
-  // Keep input in sync with URL (back/forward, external param changes)
+  // Keep input synced with URL (back/forward)
   useEffect(() => {
     setSearchTerm(searchParams.get('search') ?? '')
   }, [searchParams])
@@ -40,7 +49,7 @@ function DefaultLayout({ children }: PropsWithChildren) {
     }
   }
 
-  // Debounce: write searchTerm -> URL
+  // Debounce searchTerm -> URL
   useEffect(() => {
     const t = window.setTimeout(() => {
       const desired = searchTerm.trim()
@@ -55,7 +64,7 @@ function DefaultLayout({ children }: PropsWithChildren) {
           if (desired) next.set('search', desired)
           else next.delete('search')
 
-          // reset paging when query changes
+          // reset page on query change
           next.delete('page')
 
           return next
@@ -63,7 +72,7 @@ function DefaultLayout({ children }: PropsWithChildren) {
         { replace: true },
       )
 
-      // Optional UX: If user searches while not on list pages, redirect to recipes
+      // Optional redirect to recipes list if searching elsewhere
       if (
         desired &&
         location.pathname !== ROUTE_PATHS.RECIPES &&
@@ -84,7 +93,7 @@ function DefaultLayout({ children }: PropsWithChildren) {
     return () => window.clearTimeout(t)
   }, [searchTerm, searchParams, setSearchParams, navigate, location.pathname])
 
-  // Single-select toggle (matches backend: diet/mealType/cuisine = string)
+  // Single-select filter toggle (backend expects one value per key)
   const handleFilterToggle = (paramKey: string, value: string) => {
     setSearchParams(
       (prev) => {
@@ -94,7 +103,7 @@ function DefaultLayout({ children }: PropsWithChildren) {
         if (current === value) next.delete(paramKey)
         else next.set(paramKey, value)
 
-        // reset paging when filters change
+        // reset page on filter change
         next.delete('page')
 
         return next
@@ -103,21 +112,31 @@ function DefaultLayout({ children }: PropsWithChildren) {
     )
   }
 
+  // Filter groups: display label but store value (slug)
   const filterGroups = [
     {
       label: 'Meal Type',
       paramKey: 'mealType',
-      items: ['Breakfast', 'Lunch', 'Dinner', 'Snack'],
+      items: ['Breakfast', 'Lunch', 'Dinner', 'Snack'].map((label) => ({
+        label,
+        value: toParamValue(label), // breakfast, lunch...
+      })),
     },
     {
       label: 'Dietary Preference',
       paramKey: 'diet',
-      items: ['High Protein', 'Low Carb', 'Keto', 'Vegetarian'],
+      items: ['High Protein', 'Low Carb', 'Keto', 'Vegetarian'].map((label) => ({
+        label,
+        value: toParamValue(label), // high-protein, low-carb, keto, vegetarian
+      })),
     },
     {
       label: 'Cuisine',
       paramKey: 'cuisine',
-      items: ['American', 'Mexican', 'Italian', 'Asian'],
+      items: ['American', 'Mexican', 'Italian', 'Asian'].map((label) => ({
+        label,
+        value: toParamValue(label), // american, mexican...
+      })),
     },
   ] as const
 
@@ -130,37 +149,20 @@ function DefaultLayout({ children }: PropsWithChildren) {
       <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
         <div
           className="absolute -left-40 -top-40 rounded-full opacity-20"
-          style={{
-            background: 'radial-gradient(circle, #00c896 0%, transparent 70%)',
-            filter: 'blur(80px)',
-            height: '500px',
-            width: '500px',
-          }}
+          style={{ background: 'radial-gradient(circle, #00c896 0%, transparent 70%)', filter: 'blur(80px)', height: '500px', width: '500px' }}
         />
         <div
           className="absolute -right-20 top-1/3 rounded-full opacity-10"
-          style={{
-            background: 'radial-gradient(circle, #00b37d 0%, transparent 70%)',
-            filter: 'blur(90px)',
-            height: '400px',
-            width: '400px',
-          }}
+          style={{ background: 'radial-gradient(circle, #00b37d 0%, transparent 70%)', filter: 'blur(90px)', height: '400px', width: '400px' }}
         />
         <div
           className="absolute bottom-0 left-1/3 rounded-full"
-          style={{
-            background: 'radial-gradient(circle, #00ffa3 0%, transparent 70%)',
-            filter: 'blur(100px)',
-            height: '350px',
-            width: '350px',
-            opacity: 0.07,
-          }}
+          style={{ background: 'radial-gradient(circle, #00ffa3 0%, transparent 70%)', filter: 'blur(100px)', height: '350px', width: '350px', opacity: 0.07 }}
         />
         <div
           className="absolute inset-0 opacity-[0.025]"
           style={{
-            backgroundImage:
-              'linear-gradient(rgba(0,200,150,1) 1px, transparent 1px), linear-gradient(90deg, rgba(0,200,150,1) 1px, transparent 1px)',
+            backgroundImage: 'linear-gradient(rgba(0,200,150,1) 1px, transparent 1px), linear-gradient(90deg, rgba(0,200,150,1) 1px, transparent 1px)',
             backgroundSize: '60px 60px',
           }}
         />
@@ -178,10 +180,7 @@ function DefaultLayout({ children }: PropsWithChildren) {
             boxShadow: '0 8px 40px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.07)',
           }}
         >
-          <div
-            className="absolute top-0 left-6 right-6 h-px"
-            style={{ background: 'linear-gradient(90deg, transparent, rgba(0,200,150,0.6), transparent)' }}
-          />
+          <div className="absolute top-0 left-6 right-6 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(0,200,150,0.6), transparent)' }} />
 
           <div className="flex flex-col h-full p-5 gap-0">
             {/* Brand */}
@@ -189,13 +188,7 @@ function DefaultLayout({ children }: PropsWithChildren) {
               <Text className="font-black uppercase tracking-[0.15em] text-lg" style={{ color: 'rgba(255,255,255,0.9)' }}>
                 Barbell <span style={{ color: '#00c896' }}>Bites</span>
               </Text>
-              <div
-                className="mt-1.5 flex items-center gap-2 px-3 py-1.5 rounded-lg"
-                style={{
-                  background: 'rgba(0,200,150,0.08)',
-                  border: '1px solid rgba(0,200,150,0.15)',
-                }}
-              >
+              <div className="mt-1.5 flex items-center gap-2 px-3 py-1.5 rounded-lg" style={{ background: 'rgba(0,200,150,0.08)', border: '1px solid rgba(0,200,150,0.15)' }}>
                 <div className="w-1.5 h-1.5 rounded-full" style={{ background: '#00c896', boxShadow: '0 0 6px #00c896' }} />
                 <Text size="xs" style={{ color: 'rgba(255,255,255,0.55)', letterSpacing: '0.04em' }}>
                   {user?.email ?? 'Guest'}
@@ -235,7 +228,7 @@ function DefaultLayout({ children }: PropsWithChildren) {
             {/* Filters */}
             <div className="flex-1 overflow-y-auto pr-1 space-y-5" style={{ scrollbarWidth: 'none' }}>
               {filterGroups.map((group) => {
-                const active = searchParams.get(group.paramKey) // single select
+                const active = searchParams.get(group.paramKey) // active slug value
 
                 return (
                   <div key={group.label}>
@@ -259,12 +252,12 @@ function DefaultLayout({ children }: PropsWithChildren) {
                     <Stack gap={6}>
                       {group.items.map((item) => (
                         <Checkbox
-                          key={item}
-                          label={item}
+                          key={item.value}
+                          label={item.label}
                           size="xs"
                           color="brand"
-                          checked={active === item}
-                          onChange={() => handleFilterToggle(group.paramKey, item)}
+                          checked={active === item.value}
+                          onChange={() => handleFilterToggle(group.paramKey, item.value)}
                           styles={{
                             label: {
                               color: 'rgba(255,255,255,0.65)',
@@ -326,10 +319,7 @@ function DefaultLayout({ children }: PropsWithChildren) {
             boxShadow: '0 8px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)',
           }}
         >
-          <div
-            className="absolute top-0 left-12 right-12 h-px"
-            style={{ background: 'linear-gradient(90deg, transparent, rgba(0,200,150,0.3), transparent)' }}
-          />
+          <div className="absolute top-0 left-12 right-12 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(0,200,150,0.3), transparent)' }} />
           <div className="h-full w-full p-6">{children}</div>
         </section>
       </div>

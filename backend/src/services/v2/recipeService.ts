@@ -76,35 +76,40 @@ function normalizeRecipePayload(data: RecipePayload): Partial<IRecipe> {
 }
 
 function buildRecipeFilters(query: RecipeListQuery): MongoFilter {
-	const filter: MongoFilter = {};
+	const filter: MongoFilter = {}
 
 	if (query.search) {
-		const search = escapeRegex(query.search.trim());
+		const search = escapeRegex(query.search.trim())
 		if (search) {
 			filter.$or = [
 				{ title: { $regex: search, $options: 'i' } },
 				{ description: { $regex: search, $options: 'i' } },
-			];
+			]
 		}
 	}
 
+	// ARRAY FILTERS
 	if (query.diet) {
-		filter.diets = query.diet;
-	}
-	if (query.mealType) {
-		filter.mealTypes = query.mealType;
-	}
-	if (query.cuisine) {
-		filter.cuisines = query.cuisine;
-	}
-	if (typeof query.maxPrepTime === 'number') {
-		filter.prepTime = { $lte: query.maxPrepTime };
-	}
-	if (typeof query.maxTotalTime === 'number') {
-		filter.totalTime = { $lte: query.maxTotalTime };
+		filter.diets = { $in: [query.diet] }
 	}
 
-	return filter;
+	if (query.mealType) {
+		filter.mealTypes = { $in: [query.mealType] }
+	}
+
+	if (query.cuisine) {
+		filter.cuisines = { $in: [query.cuisine] }
+	}
+
+	if (typeof query.maxPrepTime === 'number') {
+		filter.prepTime = { $lte: query.maxPrepTime }
+	}
+
+	if (typeof query.maxTotalTime === 'number') {
+		filter.totalTime = { $lte: query.maxTotalTime }
+	}
+
+	return filter
 }
 
 export async function createRecipe(userId: string, data: Partial<IRecipe>) {
