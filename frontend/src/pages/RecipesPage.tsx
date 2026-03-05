@@ -1,3 +1,4 @@
+// frontend/src/pages/RecipesPage.tsx
 import { useEffect, useState } from 'react'
 import { ActionIcon, Button, Grid, Group, Text, Title } from '@mantine/core'
 import { IconHeart, IconHeartFilled } from '@tabler/icons-react'
@@ -17,42 +18,41 @@ function RecipesPage() {
   const [limit] = useState(6)
   const [totalPages, setTotalPages] = useState(0)
   const [totalRecipes, setTotalRecipes] = useState(0)
-  const [searchParams] = useSearchParams() 
+  const [searchParams] = useSearchParams()
+
   const [createOpen, setCreateOpen] = useState(false)
   const [createLoading, setCreateLoading] = useState(false)
   const [createError, setCreateError] = useState('')
+
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set())
   const [favoriteLoadingId, setFavoriteLoadingId] = useState<string | null>(null)
 
-const loadRecipes = async (nextPage = page) => {
+  const loadRecipes = async (nextPage = page) => {
     try {
       setLoading(true)
       setError('')
-      
-      // EXTRCT PARAMS FROM URL
+
+      // Extract params from URL
       const search = searchParams.get('search') || undefined
       const diet = searchParams.get('diet') || undefined
       const mealType = searchParams.get('mealType') || undefined
       const cuisine = searchParams.get('cuisine') || undefined
-      const maxPrepTime = searchParams.get('maxPrepTime') 
-        ? Number(searchParams.get('maxPrepTime')) 
-        : undefined
-      const maxTotalTime = searchParams.get('maxTotalTime') 
-        ? Number(searchParams.get('maxTotalTime')) 
-        : undefined
 
-      // PASS PARAMS TO API
-      const data = await getRecipes({ 
-        page: nextPage, 
+      const maxPrepTime = searchParams.get('maxPrepTime') ? Number(searchParams.get('maxPrepTime')) : undefined
+      const maxTotalTime = searchParams.get('maxTotalTime') ? Number(searchParams.get('maxTotalTime')) : undefined
+
+      // Pass params to API
+      const data = await getRecipes({
+        page: nextPage,
         limit,
         search,
         diet,
         mealType,
         cuisine,
         maxPrepTime,
-        maxTotalTime
+        maxTotalTime,
       })
-      
+
       setRecipes(Array.isArray(data.items) ? data.items : [])
       setTotalPages(data.pagination?.totalPages ?? 0)
       setTotalRecipes(data.pagination?.total ?? 0)
@@ -65,10 +65,16 @@ const loadRecipes = async (nextPage = page) => {
     }
   }
 
+  // Reset to page 1 whenever search/filter params change
   useEffect(() => {
-    // Reset to page 1 whenever the search parameters change
-    void loadRecipes(1)
+    setPage(1)
   }, [searchParams])
+
+  // Fetch recipes whenever search/filter params OR page changes
+  useEffect(() => {
+    void loadRecipes(page)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, page])
 
   const loadFavorites = async () => {
     try {
@@ -87,8 +93,10 @@ const loadRecipes = async (nextPage = page) => {
     void loadFavorites()
   }, [])
 
+  // Refresh event (e.g. after delete-with-undo)
   useEffect(() => {
     const onRefresh = () => {
+      setPage(1)
       void loadRecipes(1)
       void loadFavorites()
     }
@@ -97,7 +105,8 @@ const loadRecipes = async (nextPage = page) => {
     return () => {
       window.removeEventListener(RECIPES_REFRESH_EVENT, onRefresh)
     }
-  }, [page])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams])
 
   const handleCreateRecipe = async (payload: RecipeMutationPayload) => {
     try {
@@ -111,6 +120,7 @@ const loadRecipes = async (nextPage = page) => {
       })
 
       setCreateOpen(false)
+      setPage(1)
       await loadRecipes(1)
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to create recipe'
@@ -126,9 +136,7 @@ const loadRecipes = async (nextPage = page) => {
 
   const handleToggleFavorite = async (recipe: RecipeListItem) => {
     const recipeId = recipe._id
-    if (!recipeId) {
-      return
-    }
+    if (!recipeId) return
 
     try {
       setFavoriteLoadingId(recipeId)
@@ -160,18 +168,6 @@ const loadRecipes = async (nextPage = page) => {
     }
   }
 
-  const cardRecipes = recipes.map((recipe) => ({
-    id: recipe.slug,
-    name: recipe.title,
-    description: recipe.description,
-    mealType: recipe.mealTypes?.[0] ?? recipe.visibility,
-    goal: recipe.diets?.[0] ?? recipe.cuisines?.[0] ?? 'General',
-    visibility: recipe.visibility,
-    totalTime: recipe.totalTime,
-    servings: recipe.servings,
-    calories: recipe.nutritionPerServing?.calories,
-  }))
-
   return (
     <div className="h-full flex flex-col gap-6">
       <CreateRecipeModal
@@ -202,7 +198,10 @@ const loadRecipes = async (nextPage = page) => {
         {/* Ambient glow */}
         <div
           className="absolute -top-10 -right-10 w-48 h-48 rounded-full pointer-events-none"
-          style={{ background: 'radial-gradient(circle, rgba(0,200,150,0.12) 0%, transparent 70%)', filter: 'blur(30px)' }}
+          style={{
+            background: 'radial-gradient(circle, rgba(0,200,150,0.12) 0%, transparent 70%)',
+            filter: 'blur(30px)',
+          }}
         />
 
         <div className="relative z-10 flex items-end justify-between">
@@ -217,8 +216,9 @@ const loadRecipes = async (nextPage = page) => {
                 marginBottom: '6px',
               }}
             >
-               <span>Barbell Bites</span>
+              <span>Barbell Bites</span>
             </Text>
+
             <Title
               order={2}
               style={{
@@ -232,18 +232,13 @@ const loadRecipes = async (nextPage = page) => {
             >
               Recipes
             </Title>
-            <Text
-              size="sm"
-              style={{ color: 'rgba(255,255,255,0.45)', letterSpacing: '0.01em' }}
-            >
+
+            <Text size="sm" style={{ color: 'rgba(255,255,255,0.45)', letterSpacing: '0.01em' }}>
               Browse recipes and open any card to view details.
             </Text>
           </div>
 
           <div className="flex flex-col items-end gap-2">
-            {/* Recipe count pill */}
-        
-
             <Button
               onClick={() => {
                 setCreateError('')
@@ -272,7 +267,7 @@ const loadRecipes = async (nextPage = page) => {
           </Grid.Col>
         )}
 
-        {!error && !loading && cardRecipes.length === 0 && (
+        {!error && !loading && recipes.length === 0 && (
           <Grid.Col span={12}>
             <Text c="dimmed">No recipes found.</Text>
           </Grid.Col>
@@ -281,37 +276,31 @@ const loadRecipes = async (nextPage = page) => {
         {recipes.map((recipe) => {
           const isFavorite = favoriteIds.has(recipe._id)
           return (
-          <Grid.Col key={recipe.slug} span={{ base: 12, sm: 6, md: 4 }}>
-            <RecipeCard
-              id={recipe.slug}
-              name={recipe.title}
-              description={recipe.description}
-              image={recipe.image}
-              mealType={recipe.mealTypes?.[0] ?? recipe.visibility}
-              goal={recipe.diets?.[0] ?? recipe.cuisines?.[0] ?? 'General'}
-              visibility={recipe.visibility}
-              totalTime={recipe.totalTime}
-              servings={recipe.servings}
-              calories={recipe.nutritionPerServing?.calories}
-              actionMenu={
-                <ActionIcon
-                  variant="subtle"
-                  color={isFavorite ? 'red' : 'gray'}
-                  aria-label="Toggle favorite"
-                  loading={favoriteLoadingId === recipe._id}
-                  onClick={() => {
-                    void handleToggleFavorite(recipe)
-                  }}
-                >
-                  {isFavorite ? (
-                    <IconHeartFilled size={16} />
-                  ) : (
-                    <IconHeart size={16} />
-                  )}
-                </ActionIcon>
-              }
-            />
-          </Grid.Col>
+            <Grid.Col key={recipe.slug} span={{ base: 12, sm: 6, md: 4 }}>
+              <RecipeCard
+                id={recipe.slug}
+                name={recipe.title}
+                description={recipe.description}
+                image={recipe.image}
+                mealType={recipe.mealTypes?.[0] ?? recipe.visibility}
+                goal={recipe.diets?.[0] ?? recipe.cuisines?.[0] ?? 'General'}
+                visibility={recipe.visibility}
+                totalTime={recipe.totalTime}
+                servings={recipe.servings}
+                calories={recipe.nutritionPerServing?.calories}
+                actionMenu={
+                  <ActionIcon
+                    variant="subtle"
+                    color={isFavorite ? 'red' : 'gray'}
+                    aria-label="Toggle favorite"
+                    loading={favoriteLoadingId === recipe._id}
+                    onClick={() => void handleToggleFavorite(recipe)}
+                  >
+                    {isFavorite ? <IconHeartFilled size={16} /> : <IconHeart size={16} />}
+                  </ActionIcon>
+                }
+              />
+            </Grid.Col>
           )
         })}
       </Grid>
@@ -322,16 +311,25 @@ const loadRecipes = async (nextPage = page) => {
             Page {page} of {totalPages} • {totalRecipes} total recipes
           </Text>
           <Group gap="sm">
-            <Button variant="default" size="xs" disabled={loading || page <= 1} onClick={() => setPage((prev) => Math.max(1, prev - 1))}>
+            <Button
+              variant="default"
+              size="xs"
+              disabled={loading || page <= 1}
+              onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+            >
               Previous
             </Button>
-            <Button variant="default" size="xs" disabled={loading || page >= totalPages} onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}>
+            <Button
+              variant="default"
+              size="xs"
+              disabled={loading || page >= totalPages}
+              onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+            >
               Next
             </Button>
           </Group>
         </Group>
       )}
-
     </div>
   )
 }

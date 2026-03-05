@@ -1,7 +1,8 @@
+// frontend/src/layouts/DefaultLayout.tsx
 import { Button, Checkbox, Divider, Stack, Text, TextInput } from '@mantine/core'
 import { IconSearch, IconLogout, IconHeart, IconBook2 } from '@tabler/icons-react'
-import { useState, useEffect, type PropsWithChildren } from 'react'
-import { useSearchParams, useNavigate, useLocation } from 'react-router-dom'
+import { useEffect, useState, type PropsWithChildren } from 'react'
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import NavButton from '../components/NavButton'
 import { ROUTE_PATHS } from '../router/routes'
 import { useAuthStore } from '../store/authStore'
@@ -10,14 +11,18 @@ import { notifyError, notifySuccess } from '../services/notify'
 function DefaultLayout({ children }: PropsWithChildren) {
   const user = useAuthStore((state) => state.user)
   const logout = useAuthStore((state) => state.logout)
-  
-  // Router hooks for syncing state to URL
+
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
   const location = useLocation()
 
-  // Initialize local search state from URL so it persists on reload
-  const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '')
+  // Local input state (controlled)
+  const [searchTerm, setSearchTerm] = useState(searchParams.get('search') ?? '')
+
+  // Keep input in sync with URL (back/forward, external param changes)
+  useEffect(() => {
+    setSearchTerm(searchParams.get('search') ?? '')
+  }, [searchParams])
 
   const handleLogout = async () => {
     try {
@@ -35,52 +40,69 @@ function DefaultLayout({ children }: PropsWithChildren) {
     }
   }
 
-  // Sync search input to URL with a 500ms debounce
+  // Debounce: write searchTerm -> URL
   useEffect(() => {
-    const timeout = setTimeout(() => {
-      const currentParams = Object.fromEntries(searchParams.entries())
-      
-      if (searchTerm.trim()) {
-        currentParams.search = searchTerm.trim()
-      } else {
-        delete currentParams.search
-      }
+    const t = window.setTimeout(() => {
+      const desired = searchTerm.trim()
+      const existing = searchParams.get('search') ?? ''
 
-      // Only update if the value actually changed
-      if (currentParams.search !== searchParams.get('search')) {
-        setSearchParams(currentParams)
-        
-        // Optional UX: If user searches while not on the recipes list, bounce them back to the main list
-        if (location.pathname !== ROUTE_PATHS.RECIPES && location.pathname !== ROUTE_PATHS.MY_RECIPES && location.pathname !== ROUTE_PATHS.FAVORITES) {
-          navigate({ pathname: ROUTE_PATHS.RECIPES, search: new URLSearchParams(currentParams).toString() })
-        }
+      if (desired === existing) return
+
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev)
+
+          if (desired) next.set('search', desired)
+          else next.delete('search')
+
+          // reset paging when query changes
+          next.delete('page')
+
+          return next
+        },
+        { replace: true },
+      )
+
+      // Optional UX: If user searches while not on list pages, redirect to recipes
+      if (
+        desired &&
+        location.pathname !== ROUTE_PATHS.RECIPES &&
+        location.pathname !== ROUTE_PATHS.MY_RECIPES &&
+        location.pathname !== ROUTE_PATHS.FAVORITES
+      ) {
+        const nextParams = new URLSearchParams(searchParams)
+        nextParams.set('search', desired)
+        nextParams.delete('page')
+
+        navigate({
+          pathname: ROUTE_PATHS.RECIPES,
+          search: `?${nextParams.toString()}`,
+        })
       }
     }, 500)
 
-    return () => clearTimeout(timeout)
+    return () => window.clearTimeout(t)
   }, [searchTerm, searchParams, setSearchParams, navigate, location.pathname])
 
-  // Handle filter checkbox toggles
+  // Single-select toggle (matches backend: diet/mealType/cuisine = string)
   const handleFilterToggle = (paramKey: string, value: string) => {
-    const currentParams = Object.fromEntries(searchParams.entries())
-    
-    // Support multiple selections (e.g., ?diet=Keto,Vegetarian)
-    const currentSelected = currentParams[paramKey] ? currentParams[paramKey].split(',') : []
-    
-    const newSelected = currentSelected.includes(value)
-      ? currentSelected.filter((v) => v !== value) // Remove if already selected
-      : [...currentSelected, value] // Add if not selected
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        const current = next.get(paramKey)
 
-    if (newSelected.length > 0) {
-      currentParams[paramKey] = newSelected.join(',')
-    } else {
-      delete currentParams[paramKey]
-    }
+        if (current === value) next.delete(paramKey)
+        else next.set(paramKey, value)
 
-    setSearchParams(currentParams)
+        // reset paging when filters change
+        next.delete('page')
+
+        return next
+      },
+      { replace: true },
+    )
   }
 
-  // Filter configuration mapped to API params
   const filterGroups = [
     {
       label: 'Meal Type',
@@ -97,7 +119,7 @@ function DefaultLayout({ children }: PropsWithChildren) {
       paramKey: 'cuisine',
       items: ['American', 'Mexican', 'Italian', 'Asian'],
     },
-  ]
+  ] as const
 
   return (
     <div
@@ -108,27 +130,43 @@ function DefaultLayout({ children }: PropsWithChildren) {
       <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
         <div
           className="absolute -left-40 -top-40 rounded-full opacity-20"
-          style={{ background: 'radial-gradient(circle, #00c896 0%, transparent 70%)', filter: 'blur(80px)', height: '500px', width: '500px' }}
+          style={{
+            background: 'radial-gradient(circle, #00c896 0%, transparent 70%)',
+            filter: 'blur(80px)',
+            height: '500px',
+            width: '500px',
+          }}
         />
         <div
           className="absolute -right-20 top-1/3 rounded-full opacity-10"
-          style={{ background: 'radial-gradient(circle, #00b37d 0%, transparent 70%)', filter: 'blur(90px)', height: '400px', width: '400px' }}
+          style={{
+            background: 'radial-gradient(circle, #00b37d 0%, transparent 70%)',
+            filter: 'blur(90px)',
+            height: '400px',
+            width: '400px',
+          }}
         />
         <div
           className="absolute bottom-0 left-1/3 rounded-full"
-          style={{ background: 'radial-gradient(circle, #00ffa3 0%, transparent 70%)', filter: 'blur(100px)', height: '350px', width: '350px', opacity: 0.07 }}
+          style={{
+            background: 'radial-gradient(circle, #00ffa3 0%, transparent 70%)',
+            filter: 'blur(100px)',
+            height: '350px',
+            width: '350px',
+            opacity: 0.07,
+          }}
         />
         <div
           className="absolute inset-0 opacity-[0.025]"
           style={{
-            backgroundImage: 'linear-gradient(rgba(0,200,150,1) 1px, transparent 1px), linear-gradient(90deg, rgba(0,200,150,1) 1px, transparent 1px)',
+            backgroundImage:
+              'linear-gradient(rgba(0,200,150,1) 1px, transparent 1px), linear-gradient(90deg, rgba(0,200,150,1) 1px, transparent 1px)',
             backgroundSize: '60px 60px',
           }}
         />
       </div>
 
       <div className="relative z-10 grid min-h-screen p-4 gap-3" style={{ gridTemplateColumns: '280px 1fr' }}>
-
         {/* ── Sidebar ── */}
         <aside
           className="relative flex flex-col rounded-2xl overflow-hidden"
@@ -167,15 +205,12 @@ function DefaultLayout({ children }: PropsWithChildren) {
 
             {/* Nav buttons */}
             <Stack gap="xs" mb="md">
-             <NavButton to={ROUTE_PATHS.RECIPES}   icon={<IconBook2 size={15} />}  label="Recipes"   variant="ghost" />
+              <NavButton to={ROUTE_PATHS.RECIPES} icon={<IconBook2 size={15} />} label="Recipes" variant="ghost" />
               <NavButton to={ROUTE_PATHS.MY_RECIPES} icon={<IconBook2 size={15} />} label="My Recipes" variant="ghost" />
-              <NavButton to={ROUTE_PATHS.FAVORITES} icon={<IconHeart size={15} />}  label="Favorites" variant="ghost"   />
+              <NavButton to={ROUTE_PATHS.FAVORITES} icon={<IconHeart size={15} />} label="Favorites" variant="ghost" />
             </Stack>
 
-            <Divider
-              mb="md"
-              style={{ borderColor: 'rgba(255,255,255,0.07)' }}
-            />
+            <Divider mb="md" style={{ borderColor: 'rgba(255,255,255,0.07)' }} />
 
             {/* Search */}
             <TextInput
@@ -197,11 +232,11 @@ function DefaultLayout({ children }: PropsWithChildren) {
               }}
             />
 
-            {/* Filters — scrollable */}
+            {/* Filters */}
             <div className="flex-1 overflow-y-auto pr-1 space-y-5" style={{ scrollbarWidth: 'none' }}>
               {filterGroups.map((group) => {
-                const activeFilters = searchParams.get(group.paramKey)?.split(',') || []
-                
+                const active = searchParams.get(group.paramKey) // single select
+
                 return (
                   <div key={group.label}>
                     <div className="flex items-center gap-2 mb-3">
@@ -220,6 +255,7 @@ function DefaultLayout({ children }: PropsWithChildren) {
                       </Text>
                       <div className="h-px flex-1" style={{ background: 'rgba(0,200,150,0.2)' }} />
                     </div>
+
                     <Stack gap={6}>
                       {group.items.map((item) => (
                         <Checkbox
@@ -227,7 +263,7 @@ function DefaultLayout({ children }: PropsWithChildren) {
                           label={item}
                           size="xs"
                           color="brand"
-                          checked={activeFilters.includes(item)}
+                          checked={active === item}
                           onChange={() => handleFilterToggle(group.paramKey, item)}
                           styles={{
                             label: {
@@ -254,9 +290,7 @@ function DefaultLayout({ children }: PropsWithChildren) {
               <Button
                 fullWidth
                 leftSection={<IconLogout size={14} />}
-                onClick={() => {
-                  void handleLogout()
-                }}
+                onClick={() => void handleLogout()}
                 styles={{
                   root: {
                     background: 'rgba(255,255,255,0.04)',
@@ -296,11 +330,8 @@ function DefaultLayout({ children }: PropsWithChildren) {
             className="absolute top-0 left-12 right-12 h-px"
             style={{ background: 'linear-gradient(90deg, transparent, rgba(0,200,150,0.3), transparent)' }}
           />
-          <div className="h-full w-full p-6">
-            {children}
-          </div>
+          <div className="h-full w-full p-6">{children}</div>
         </section>
-
       </div>
     </div>
   )

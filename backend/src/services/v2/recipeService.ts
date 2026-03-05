@@ -182,44 +182,53 @@ export async function undoDeleteRecipe(userId: string, slug: string) {
 }
 
 export async function listPublicRecipes(query: RecipeListQuery, userId?: string) {
-	const page = Math.max(1, query.page ?? 1);
-	const limit = Math.min(50, Math.max(1, query.limit ?? 10));
-	const skip = (page - 1) * limit;
+  const page = Math.max(1, query.page ?? 1);
+  const limit = Math.min(50, Math.max(1, query.limit ?? 10));
+  const skip = (page - 1) * limit;
 
-	const filter: MongoFilter = {
-		...buildRecipeFilters(query),
-		deletedAt: null,
-	};
+  const baseFilters: MongoFilter = buildRecipeFilters(query);
 
-	if (userId) {
-		filter.$or = [{ visibility: 'public' }, { owner: userId }];
-	} else {
-		filter.visibility = 'public';
-	}
+  // Access control filter
+  const accessFilter: MongoFilter = userId
+    ? { $or: [{ visibility: 'public' }, { owner: userId }] }
+    : { visibility: 'public' };
 
-	const [items, total] = await withReadFailover(
-		'public recipe list',
-		() =>
-			Promise.all([
-				Recipe.find(filter).skip(skip).limit(limit).sort({ createdAt: -1 }),
-				Recipe.countDocuments(filter),
-			]),
-		() =>
-			Promise.all([
-				BackupRecipe.find(filter).skip(skip).limit(limit).sort({ createdAt: -1 }),
-				BackupRecipe.countDocuments(filter),
-			]),
-	);
+  // Combine WITHOUT overwriting $or from search
+  const andParts: MongoFilter[] = [
+    { deletedAt: null },
+    accessFilter,
+  ];
 
-	return {
-		items: items as IRecipe[],
-		pagination: {
-			page,
-			limit,
-			total,
-			totalPages: total === 0 ? 0 : Math.ceil(total / limit),
-		},
-	} as PaginatedRecipesResult;
+  if (Object.keys(baseFilters).length > 0) {
+    andParts.push(baseFilters);
+  }
+
+  const finalFilter: MongoFilter =
+    andParts.length === 1 ? andParts[0] : { $and: andParts };
+
+  const [items, total] = await withReadFailover(
+    'public recipe list',
+    () =>
+      Promise.all([
+        Recipe.find(finalFilter).skip(skip).limit(limit).sort({ createdAt: -1 }),
+        Recipe.countDocuments(finalFilter),
+      ]),
+    () =>
+      Promise.all([
+        BackupRecipe.find(finalFilter).skip(skip).limit(limit).sort({ createdAt: -1 }),
+        BackupRecipe.countDocuments(finalFilter),
+      ]),
+  );
+
+  return {
+    items: items as IRecipe[],
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: total === 0 ? 0 : Math.ceil(total / limit),
+    },
+  } as PaginatedRecipesResult;
 }
 
 export async function listUserRecipes(userId: string, query: RecipeListQuery) {
