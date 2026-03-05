@@ -216,24 +216,7 @@ function RecipesPage() {
 
           <div className="flex flex-col items-end gap-2">
             {/* Recipe count pill */}
-            <div
-              className="flex items-center gap-2 px-4 py-2 rounded-xl"
-              style={{
-                background: 'rgba(0,200,150,0.08)',
-                border: '1px solid rgba(0,200,150,0.2)',
-              }}
-            >
-              <div
-                className="w-1.5 h-1.5 rounded-full"
-                style={{ background: '#00c896', boxShadow: '0 0 6px #00c896' }}
-              />
-              <Text
-                size="xs"
-                style={{ color: '#1DDFBD', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}
-              >
-                {cardRecipes.length} Recipes
-              </Text>
-            </div>
+        
 
             <Button
               onClick={() => {
