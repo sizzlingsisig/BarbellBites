@@ -1,7 +1,8 @@
 import { Button, Checkbox, Divider, Stack, Text, TextInput } from '@mantine/core'
 import { IconSearch, IconLogout, IconHeart, IconBook2 } from '@tabler/icons-react'
-import { useState, type PropsWithChildren } from 'react'
-import NavButton from '../components/NavButton.tsx'
+import { useState, useEffect, type PropsWithChildren } from 'react'
+import { useSearchParams, useNavigate, useLocation } from 'react-router-dom'
+import NavButton from '../components/NavButton'
 import { ROUTE_PATHS } from '../router/routes'
 import { useAuthStore } from '../store/authStore'
 import { notifyError, notifySuccess } from '../services/notify'
@@ -9,7 +10,15 @@ import { notifyError, notifySuccess } from '../services/notify'
 function DefaultLayout({ children }: PropsWithChildren) {
   const user = useAuthStore((state) => state.user)
   const logout = useAuthStore((state) => state.logout)
-  const [searchTerm, setSearchTerm] = useState('')
+  
+  // Router hooks for syncing state to URL
+  const [searchParams, setSearchParams] = useSearchParams()
+  const navigate = useNavigate()
+  const location = useLocation()
+
+  // Initialize local search state from URL so it persists on reload
+  const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '')
+
   const handleLogout = async () => {
     try {
       await logout()
@@ -25,8 +34,70 @@ function DefaultLayout({ children }: PropsWithChildren) {
       })
     }
   }
-  // theme variable removed
-  // Removed unused variable 'slate'
+
+  // Sync search input to URL with a 500ms debounce
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      const currentParams = Object.fromEntries(searchParams.entries())
+      
+      if (searchTerm.trim()) {
+        currentParams.search = searchTerm.trim()
+      } else {
+        delete currentParams.search
+      }
+
+      // Only update if the value actually changed
+      if (currentParams.search !== searchParams.get('search')) {
+        setSearchParams(currentParams)
+        
+        // Optional UX: If user searches while not on the recipes list, bounce them back to the main list
+        if (location.pathname !== ROUTE_PATHS.RECIPES && location.pathname !== ROUTE_PATHS.MY_RECIPES && location.pathname !== ROUTE_PATHS.FAVORITES) {
+          navigate({ pathname: ROUTE_PATHS.RECIPES, search: new URLSearchParams(currentParams).toString() })
+        }
+      }
+    }, 500)
+
+    return () => clearTimeout(timeout)
+  }, [searchTerm, searchParams, setSearchParams, navigate, location.pathname])
+
+  // Handle filter checkbox toggles
+  const handleFilterToggle = (paramKey: string, value: string) => {
+    const currentParams = Object.fromEntries(searchParams.entries())
+    
+    // Support multiple selections (e.g., ?diet=Keto,Vegetarian)
+    const currentSelected = currentParams[paramKey] ? currentParams[paramKey].split(',') : []
+    
+    const newSelected = currentSelected.includes(value)
+      ? currentSelected.filter((v) => v !== value) // Remove if already selected
+      : [...currentSelected, value] // Add if not selected
+
+    if (newSelected.length > 0) {
+      currentParams[paramKey] = newSelected.join(',')
+    } else {
+      delete currentParams[paramKey]
+    }
+
+    setSearchParams(currentParams)
+  }
+
+  // Filter configuration mapped to API params
+  const filterGroups = [
+    {
+      label: 'Meal Type',
+      paramKey: 'mealType',
+      items: ['Breakfast', 'Lunch', 'Dinner', 'Snack'],
+    },
+    {
+      label: 'Dietary Preference',
+      paramKey: 'diet',
+      items: ['High Protein', 'Low Carb', 'Keto', 'Vegetarian'],
+    },
+    {
+      label: 'Cuisine',
+      paramKey: 'cuisine',
+      items: ['American', 'Mexican', 'Italian', 'Asian'],
+    },
+  ]
 
   return (
     <div
@@ -47,7 +118,6 @@ function DefaultLayout({ children }: PropsWithChildren) {
           className="absolute bottom-0 left-1/3 rounded-full"
           style={{ background: 'radial-gradient(circle, #00ffa3 0%, transparent 70%)', filter: 'blur(100px)', height: '350px', width: '350px', opacity: 0.07 }}
         />
-        {/* Subtle grid */}
         <div
           className="absolute inset-0 opacity-[0.025]"
           style={{
@@ -70,14 +140,12 @@ function DefaultLayout({ children }: PropsWithChildren) {
             boxShadow: '0 8px 40px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.07)',
           }}
         >
-          {/* Top teal shimmer line */}
           <div
             className="absolute top-0 left-6 right-6 h-px"
             style={{ background: 'linear-gradient(90deg, transparent, rgba(0,200,150,0.6), transparent)' }}
           />
 
           <div className="flex flex-col h-full p-5 gap-0">
-
             {/* Brand */}
             <div className="mb-5">
               <Text className="font-black uppercase tracking-[0.15em] text-lg" style={{ color: 'rgba(255,255,255,0.9)' }}>
@@ -131,61 +199,54 @@ function DefaultLayout({ children }: PropsWithChildren) {
 
             {/* Filters — scrollable */}
             <div className="flex-1 overflow-y-auto pr-1 space-y-5" style={{ scrollbarWidth: 'none' }}>
-              {[
-                {
-                  label: 'Meal Type',
-                  items: ['Breakfast', 'Lunch', 'Dinner', 'Snack'],
-                },
-                {
-                  label: 'Dietary Preference',
-                  items: ['High Protein', 'Low Carb', 'Keto', 'Vegetarian'],
-                },
-                {
-                  label: 'Health Goals',
-                  items: ['Weight Loss', 'Muscle Gain', 'Maintain Weight', 'Heart Health'],
-                },
-              ].map((group) => (
-                <div key={group.label}>
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="h-px flex-1" style={{ background: 'rgba(0,200,150,0.2)' }} />
-                    <Text
-                      size="xs"
-                      style={{
-                        color: '#00c896',
-                        fontWeight: 700,
-                        letterSpacing: '0.1em',
-                        textTransform: 'uppercase',
-                        fontSize: '0.65rem',
-                      }}
-                    >
-                      {group.label}
-                    </Text>
-                    <div className="h-px flex-1" style={{ background: 'rgba(0,200,150,0.2)' }} />
-                  </div>
-                  <Stack gap={6}>
-                    {group.items.map((item) => (
-                      <Checkbox
-                        key={item}
-                        label={item}
+              {filterGroups.map((group) => {
+                const activeFilters = searchParams.get(group.paramKey)?.split(',') || []
+                
+                return (
+                  <div key={group.label}>
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="h-px flex-1" style={{ background: 'rgba(0,200,150,0.2)' }} />
+                      <Text
                         size="xs"
-                        color="brand"
-                        styles={{
-                          label: {
-                            color: 'rgba(255,255,255,0.65)',
-                            fontWeight: 500,
-                            fontSize: '0.8rem',
-                            cursor: 'pointer',
-                          },
-                          input: {
-                            background: 'rgba(255,255,255,0.05)',
-                            border: '1px solid rgba(255,255,255,0.15)',
-                          },
+                        style={{
+                          color: '#00c896',
+                          fontWeight: 700,
+                          letterSpacing: '0.1em',
+                          textTransform: 'uppercase',
+                          fontSize: '0.65rem',
                         }}
-                      />
-                    ))}
-                  </Stack>
-                </div>
-              ))}
+                      >
+                        {group.label}
+                      </Text>
+                      <div className="h-px flex-1" style={{ background: 'rgba(0,200,150,0.2)' }} />
+                    </div>
+                    <Stack gap={6}>
+                      {group.items.map((item) => (
+                        <Checkbox
+                          key={item}
+                          label={item}
+                          size="xs"
+                          color="brand"
+                          checked={activeFilters.includes(item)}
+                          onChange={() => handleFilterToggle(group.paramKey, item)}
+                          styles={{
+                            label: {
+                              color: 'rgba(255,255,255,0.65)',
+                              fontWeight: 500,
+                              fontSize: '0.8rem',
+                              cursor: 'pointer',
+                            },
+                            input: {
+                              background: 'rgba(255,255,255,0.05)',
+                              border: '1px solid rgba(255,255,255,0.15)',
+                            },
+                          }}
+                        />
+                      ))}
+                    </Stack>
+                  </div>
+                )
+              })}
             </div>
 
             {/* Logout */}
@@ -231,7 +292,6 @@ function DefaultLayout({ children }: PropsWithChildren) {
             boxShadow: '0 8px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)',
           }}
         >
-          {/* Top shimmer line */}
           <div
             className="absolute top-0 left-12 right-12 h-px"
             style={{ background: 'linear-gradient(90deg, transparent, rgba(0,200,150,0.3), transparent)' }}
