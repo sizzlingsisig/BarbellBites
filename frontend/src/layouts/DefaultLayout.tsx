@@ -1,37 +1,15 @@
 // frontend/src/layouts/DefaultLayout.tsx
-import { Button, Checkbox, Divider, Stack, Text, TextInput } from '@mantine/core'
-import { IconSearch, IconLogout, IconHeart, IconBook2 } from '@tabler/icons-react'
-import { useEffect, useState, type PropsWithChildren } from 'react'
-import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
-import NavButton from '../components/NavButton'
-import { ROUTE_PATHS } from '../router/routes'
+import { Button } from '@mantine/core'
+import { IconLogout } from '@tabler/icons-react'
+import type { PropsWithChildren } from 'react'
 import { useAuthStore } from '../store/authStore'
 import { notifyError, notifySuccess } from '../services/notify'
-
-/**
- * Convert UI labels -> backend-safe query values
- * "High Protein" -> "high-protein"
- * "Low Carb" -> "low-carb"
- * "Mexican" -> "mexican"
- */
-function toParamValue(label: string) {
-  return label.trim().toLowerCase().replace(/\s+/g, '-')
-}
+import SidebarFilterSearchSection from '../components/SidebarFilterSearchSection'
+import SidebarNavSection from '../components/SideBarNavSection'
 
 function DefaultLayout({ children }: PropsWithChildren) {
   const user = useAuthStore((state) => state.user)
   const logout = useAuthStore((state) => state.logout)
-
-  const [searchParams, setSearchParams] = useSearchParams()
-  const navigate = useNavigate()
-  const location = useLocation()
-
-  const [searchTerm, setSearchTerm] = useState(searchParams.get('search') ?? '')
-
-  // Keep input synced with URL (back/forward)
-  useEffect(() => {
-    setSearchTerm(searchParams.get('search') ?? '')
-  }, [searchParams])
 
   const handleLogout = async () => {
     try {
@@ -49,97 +27,6 @@ function DefaultLayout({ children }: PropsWithChildren) {
     }
   }
 
-  // Debounce searchTerm -> URL
-  useEffect(() => {
-    const t = window.setTimeout(() => {
-      const desired = searchTerm.trim()
-      const existing = searchParams.get('search') ?? ''
-
-      if (desired === existing) return
-
-      setSearchParams(
-        (prev) => {
-          const next = new URLSearchParams(prev)
-
-          if (desired) next.set('search', desired)
-          else next.delete('search')
-
-          // reset page on query change
-          next.delete('page')
-
-          return next
-        },
-        { replace: true },
-      )
-
-      // Optional redirect to recipes list if searching elsewhere
-      if (
-        desired &&
-        location.pathname !== ROUTE_PATHS.RECIPES &&
-        location.pathname !== ROUTE_PATHS.MY_RECIPES &&
-        location.pathname !== ROUTE_PATHS.FAVORITES
-      ) {
-        const nextParams = new URLSearchParams(searchParams)
-        nextParams.set('search', desired)
-        nextParams.delete('page')
-
-        navigate({
-          pathname: ROUTE_PATHS.RECIPES,
-          search: `?${nextParams.toString()}`,
-        })
-      }
-    }, 500)
-
-    return () => window.clearTimeout(t)
-  }, [searchTerm, searchParams, setSearchParams, navigate, location.pathname])
-
-  // Single-select filter toggle (backend expects one value per key)
-  const handleFilterToggle = (paramKey: string, value: string) => {
-    setSearchParams(
-      (prev) => {
-        const next = new URLSearchParams(prev)
-        const current = next.get(paramKey)
-
-        if (current === value) next.delete(paramKey)
-        else next.set(paramKey, value)
-
-        // reset page on filter change
-        next.delete('page')
-
-        return next
-      },
-      { replace: true },
-    )
-  }
-
-  // Filter groups: display label but store value (slug)
-  const filterGroups = [
-    {
-      label: 'Meal Type',
-      paramKey: 'mealType',
-      items: ['Breakfast', 'Lunch', 'Dinner', 'Snack'].map((label) => ({
-        label,
-        value: toParamValue(label), // breakfast, lunch...
-      })),
-    },
-    {
-      label: 'Dietary Preference',
-      paramKey: 'diet',
-      items: ['High Protein', 'Low Carb', 'Keto', 'Vegetarian'].map((label) => ({
-        label,
-        value: toParamValue(label), // high-protein, low-carb, keto, vegetarian
-      })),
-    },
-    {
-      label: 'Cuisine',
-      paramKey: 'cuisine',
-      items: ['American', 'Mexican', 'Italian', 'Asian'].map((label) => ({
-        label,
-        value: toParamValue(label), // american, mexican...
-      })),
-    },
-  ] as const
-
   return (
     <div
       className="relative min-h-screen overflow-hidden"
@@ -149,20 +36,37 @@ function DefaultLayout({ children }: PropsWithChildren) {
       <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
         <div
           className="absolute -left-40 -top-40 rounded-full opacity-20"
-          style={{ background: 'radial-gradient(circle, #00c896 0%, transparent 70%)', filter: 'blur(80px)', height: '500px', width: '500px' }}
+          style={{
+            background: 'radial-gradient(circle, #00c896 0%, transparent 70%)',
+            filter: 'blur(80px)',
+            height: '500px',
+            width: '500px',
+          }}
         />
         <div
           className="absolute -right-20 top-1/3 rounded-full opacity-10"
-          style={{ background: 'radial-gradient(circle, #00b37d 0%, transparent 70%)', filter: 'blur(90px)', height: '400px', width: '400px' }}
+          style={{
+            background: 'radial-gradient(circle, #00b37d 0%, transparent 70%)',
+            filter: 'blur(90px)',
+            height: '400px',
+            width: '400px',
+          }}
         />
         <div
           className="absolute bottom-0 left-1/3 rounded-full"
-          style={{ background: 'radial-gradient(circle, #00ffa3 0%, transparent 70%)', filter: 'blur(100px)', height: '350px', width: '350px', opacity: 0.07 }}
+          style={{
+            background: 'radial-gradient(circle, #00ffa3 0%, transparent 70%)',
+            filter: 'blur(100px)',
+            height: '350px',
+            width: '350px',
+            opacity: 0.07,
+          }}
         />
         <div
           className="absolute inset-0 opacity-[0.025]"
           style={{
-            backgroundImage: 'linear-gradient(rgba(0,200,150,1) 1px, transparent 1px), linear-gradient(90deg, rgba(0,200,150,1) 1px, transparent 1px)',
+            backgroundImage:
+              'linear-gradient(rgba(0,200,150,1) 1px, transparent 1px), linear-gradient(90deg, rgba(0,200,150,1) 1px, transparent 1px)',
             backgroundSize: '60px 60px',
           }}
         />
@@ -180,102 +84,22 @@ function DefaultLayout({ children }: PropsWithChildren) {
             boxShadow: '0 8px 40px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.07)',
           }}
         >
-          <div className="absolute top-0 left-6 right-6 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(0,200,150,0.6), transparent)' }} />
+          <div
+            className="absolute top-0 left-6 right-6 h-px"
+            style={{ background: 'linear-gradient(90deg, transparent, rgba(0,200,150,0.6), transparent)' }}
+          />
 
           <div className="flex flex-col h-full p-5 gap-0">
-            {/* Brand */}
-            <div className="mb-5">
-              <Text className="font-black uppercase tracking-[0.15em] text-lg" style={{ color: 'rgba(255,255,255,0.9)' }}>
-                Barbell <span style={{ color: '#00c896' }}>Bites</span>
-              </Text>
-              <div className="mt-1.5 flex items-center gap-2 px-3 py-1.5 rounded-lg" style={{ background: 'rgba(0,200,150,0.08)', border: '1px solid rgba(0,200,150,0.15)' }}>
-                <div className="w-1.5 h-1.5 rounded-full" style={{ background: '#00c896', boxShadow: '0 0 6px #00c896' }} />
-                <Text size="xs" style={{ color: 'rgba(255,255,255,0.55)', letterSpacing: '0.04em' }}>
-                  {user?.email ?? 'Guest'}
-                </Text>
-              </div>
-            </div>
+            {/* Navigation Section */}
+            <SidebarNavSection userEmail={user?.email} />
 
-            {/* Nav buttons */}
-            <Stack gap="xs" mb="md">
-              <NavButton to={ROUTE_PATHS.RECIPES} icon={<IconBook2 size={15} />} label="Recipes" variant="ghost" />
-              <NavButton to={ROUTE_PATHS.MY_RECIPES} icon={<IconBook2 size={15} />} label="My Recipes" variant="ghost" />
-              <NavButton to={ROUTE_PATHS.FAVORITES} icon={<IconHeart size={15} />} label="Favorites" variant="ghost" />
-            </Stack>
-
-            <Divider mb="md" style={{ borderColor: 'rgba(255,255,255,0.07)' }} />
-
-            {/* Search */}
-            <TextInput
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.currentTarget.value)}
-              placeholder="Search recipes…"
-              leftSection={<IconSearch size={14} style={{ color: 'rgba(255,255,255,0.4)' }} />}
-              size="sm"
-              mb="md"
-              styles={{
-                input: {
-                  background: 'rgba(255,255,255,0.04)',
-                  color: 'rgba(255,255,255,0.85)',
-                  border: '1px solid rgba(255,255,255,0.09)',
-                  backdropFilter: 'blur(8px)',
-                  fontSize: '0.8rem',
-                  '&::placeholder': { color: 'rgba(255,255,255,0.3)' },
-                },
-              }}
-            />
-
-            {/* Filters */}
-            <div className="flex-1 overflow-y-auto pr-1 space-y-5" style={{ scrollbarWidth: 'none' }}>
-              {filterGroups.map((group) => {
-                const active = searchParams.get(group.paramKey) // active slug value
-
-                return (
-                  <div key={group.label}>
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="h-px flex-1" style={{ background: 'rgba(0,200,150,0.2)' }} />
-                      <Text
-                        size="xs"
-                        style={{
-                          color: '#00c896',
-                          fontWeight: 700,
-                          letterSpacing: '0.1em',
-                          textTransform: 'uppercase',
-                          fontSize: '0.65rem',
-                        }}
-                      >
-                        {group.label}
-                      </Text>
-                      <div className="h-px flex-1" style={{ background: 'rgba(0,200,150,0.2)' }} />
-                    </div>
-
-                    <Stack gap={6}>
-                      {group.items.map((item) => (
-                        <Checkbox
-                          key={item.value}
-                          label={item.label}
-                          size="xs"
-                          color="brand"
-                          checked={active === item.value}
-                          onChange={() => handleFilterToggle(group.paramKey, item.value)}
-                          styles={{
-                            label: {
-                              color: 'rgba(255,255,255,0.65)',
-                              fontWeight: 500,
-                              fontSize: '0.8rem',
-                              cursor: 'pointer',
-                            },
-                            input: {
-                              background: 'rgba(255,255,255,0.05)',
-                              border: '1px solid rgba(255,255,255,0.15)',
-                            },
-                          }}
-                        />
-                      ))}
-                    </Stack>
-                  </div>
-                )
-              })}
+            {/* Search + Filters Section */}
+            <div className="flex-1 min-h-0">
+              {/* IMPORTANT:
+                  Your multi-select URL param logic + correct taxonomy values
+                  should live inside SidebarFilterSearchSection now.
+                  (diet=low-carb,keto etc.) */}
+              <SidebarFilterSearchSection />
             </div>
 
             {/* Logout */}
@@ -319,7 +143,10 @@ function DefaultLayout({ children }: PropsWithChildren) {
             boxShadow: '0 8px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)',
           }}
         >
-          <div className="absolute top-0 left-12 right-12 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(0,200,150,0.3), transparent)' }} />
+          <div
+            className="absolute top-0 left-12 right-12 h-px"
+            style={{ background: 'linear-gradient(90deg, transparent, rgba(0,200,150,0.3), transparent)' }}
+          />
           <div className="h-full w-full p-6">{children}</div>
         </section>
       </div>
