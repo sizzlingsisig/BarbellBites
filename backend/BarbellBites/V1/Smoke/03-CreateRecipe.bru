@@ -1,0 +1,53 @@
+meta {
+  name: Smoke Create Recipe
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{V1_API_LINK}}/recipes
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "title": "{{smokeRecipeTitle}}",
+    "description": "A smoke-test recipe for Bruno CLI flow validation.",
+    "visibility": "public",
+    "diets": ["high-protein"],
+    "mealTypes": ["dinner"],
+    "cuisines": ["american"],
+    "primaryProtein": "chicken",
+    "prepTime": 10,
+    "cookTime": 20,
+    "servings": 2,
+    "servingSize": "1 bowl",
+    "ingredients": [
+      { "name": "Chicken Breast", "amount": "300", "unit": "g" },
+      { "name": "Rice", "amount": "150", "unit": "g" }
+    ],
+    "steps": ["Season chicken", "Cook chicken", "Plate with rice"],
+    "nutritionPerServing": { "calories": 420, "protein": 38, "carbs": 28, "fats": 16 }
+  }
+}
+
+script:post-response {
+  const status = res.getStatus();
+  if (status !== 201) {
+    throw new Error(`Expected 201, got ${status}`);
+  }
+
+  const data = res.getBody();
+  if (!data?._id || !data?.slug) {
+    throw new Error('Missing _id or slug in created recipe response');
+  }
+
+  bru.setEnvVar('recipeId', data._id);
+  bru.setEnvVar('recipeSlug', data.slug);
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

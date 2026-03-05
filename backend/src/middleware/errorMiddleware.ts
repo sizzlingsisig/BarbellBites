@@ -21,6 +21,9 @@ export const errorHandler = (err: unknown, _req: Request, res: Response, _next: 
   if (err instanceof AppError) {
     statusCode = err.statusCode;
     message = err.message;
+  } else if (error.name === 'ZodError') {
+    statusCode = 400;
+    message = error.message ?? 'Validation failed.';
   } else if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
     statusCode = 401;
     message = 'Invalid or expired token.';

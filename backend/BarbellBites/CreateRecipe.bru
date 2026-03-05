@@ -1,0 +1,55 @@
+meta {
+  name: Create Recipe
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{V1_API_LINK}}/recipes
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "title": "Chicken Power Bowl",
+    "description": "A tasty high-protein recipe for post-workout meals",
+    "image": "https://example.com/chicken-bowl.jpg",
+    "visibility": "public",
+    "diets": ["high-protein"],
+    "mealTypes": ["dinner"],
+    "cuisines": ["american"],
+    "primaryProtein": "chicken",
+    "prepTime": 10,
+    "cookTime": 20,
+    "servings": 2,
+    "servingSize": "1 bowl",
+    "ingredients": [
+      { "name": "Chicken Breast", "amount": "300", "unit": "g" },
+      { "name": "Rice", "amount": "150", "unit": "g" }
+    ],
+    "steps": ["Season chicken", "Cook chicken", "Plate with rice"],
+    "nutritionPerServing": { "calories": 420, "protein": 38, "carbs": 28, "fats": 16 }
+  }
+}
+
+script:post-response {
+  const data = res.getBody();
+  
+  const recipe = data.data || data; 
+  
+  if (recipe && recipe.slug) {
+    bru.setEnvVar("recipeSlug", recipe.slug);
+    console.log(`Saved recipeSlug: ${recipe.slug}`);
+  }
+
+  if (recipe && recipe._id) {
+    bru.setEnvVar("recipeId", recipe._id);
+    console.log(`Saved recipeId: ${recipe._id}`);
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

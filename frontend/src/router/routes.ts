@@ -1,11 +1,19 @@
 import type { ComponentType } from 'react'
-import AuthPage from '../pages/AuthPage'
-import HomePage from '../pages/HomePage'
+import LoginPage from '../pages/LoginPage'
+import RecipesPage from '../pages/RecipesPage'
+import RecipeDetailPage from '../pages/RecipeDetailPage'
+import FavoritesPage from '../pages/FavoritesPage'
+import MyRecipesPage from '../pages/MyRecipesPage'
 import NotFoundPage from '../pages/NotFoundPage'
+import SignupPage from '../pages/SignupPage'
 
 export const ROUTE_PATHS = {
-  HOME: '/',
-  AUTH: '/auth',
+  RECIPES: '/',
+  RECIPE_DETAIL: '/recipes/:slug',
+  MY_RECIPES: '/my-recipes',
+  FAVORITES: '/favorites',
+  AUTH: '/login',
+  REGISTER: '/register',
   NOT_FOUND: '*',
 } as const
 
@@ -46,19 +54,55 @@ export type AppRoute = {
 
 export const appRoutes: AppRoute[] = [
   {
-    path: ROUTE_PATHS.HOME,
-    component: HomePage,
+    path: ROUTE_PATHS.RECIPES,
+    component: RecipesPage,
     meta: {
-      title: 'BarbellBites | Home',
+      title: 'BarbellBites | Recipes',
+      requiresAuth: true,
+      layout: ROUTE_LAYOUTS.DEFAULT,
+    },
+  },
+  {
+    path: ROUTE_PATHS.RECIPE_DETAIL,
+    component: RecipeDetailPage,
+    meta: {
+      title: 'BarbellBites | View Recipe',
+      requiresAuth: true,
+      layout: ROUTE_LAYOUTS.DEFAULT,
+    },
+  },
+  {
+    path: ROUTE_PATHS.MY_RECIPES,
+    component: MyRecipesPage,
+    meta: {
+      title: 'BarbellBites | My Recipes',
+      requiresAuth: true,
+      layout: ROUTE_LAYOUTS.DEFAULT,
+    },
+  },
+  {
+    path: ROUTE_PATHS.FAVORITES,
+    component: FavoritesPage,
+    meta: {
+      title: 'BarbellBites | Favorite Recipes',
       requiresAuth: true,
       layout: ROUTE_LAYOUTS.DEFAULT,
     },
   },
   {
     path: ROUTE_PATHS.AUTH,
-    component: AuthPage,
+    component: LoginPage,
     meta: {
-      title: 'BarbellBites | Auth',
+      title: 'BarbellBites | Login',
+      guestOnly: true,
+      layout: ROUTE_LAYOUTS.BLANK,
+    },
+  },
+  {
+    path: ROUTE_PATHS.REGISTER,
+    component: SignupPage,
+    meta: {
+      title: 'BarbellBites | Sign Up',
       guestOnly: true,
       layout: ROUTE_LAYOUTS.BLANK,
     },

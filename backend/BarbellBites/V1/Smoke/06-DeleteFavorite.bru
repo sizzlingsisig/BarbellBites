@@ -1,0 +1,22 @@
+meta {
+  name: Smoke Delete Favorite
+  type: http
+  seq: 11
+}
+
+delete {
+  url: {{V1_API_LINK}}/favorites/{{recipeId}}
+  auth: inherit
+}
+
+script:post-response {
+  const status = res.getStatus();
+  if (status !== 204) {
+    throw new Error(`Expected 204, got ${status}`);
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

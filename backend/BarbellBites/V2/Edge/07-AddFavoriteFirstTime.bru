@@ -1,0 +1,34 @@
+meta {
+  name: Edge Add Favorite First
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{V2_API_LINK}}/favorites/{{edgeRecipeId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{edgeOwnerToken}}
+}
+
+script:post-response {
+  const status = res.getStatus();
+  if (status !== 201) {
+    throw new Error(`Expected 201, got ${status}`);
+  }
+
+  const data = res.getBody();
+  if (!data?._id) {
+    throw new Error('Missing favorite id on first add');
+  }
+
+  bru.setEnvVar('edgeFavoriteId', data._id);
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

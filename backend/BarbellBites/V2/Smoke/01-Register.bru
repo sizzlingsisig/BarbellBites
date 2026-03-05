@@ -1,0 +1,46 @@
+meta {
+  name: Smoke Register
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{V2_API_LINK}}/auth/register
+  body: json
+  auth: none
+}
+
+script:pre-request {
+  const runId = `${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+  bru.setEnvVar('smokeRunId', runId);
+  bru.setEnvVar('smokeEmail', `smoke-${runId}@example.com`);
+  bru.setEnvVar('smokeRecipeTitle', `Smoke Recipe ${runId}`);
+  bru.setEnvVar('smokeUpdatedDescription', `Updated smoke recipe ${runId}`);
+}
+
+body:json {
+  {
+    "name": "Smoke User",
+    "email": "{{smokeEmail}}",
+    "password": "lightweightbaby"
+  }
+}
+
+script:post-response {
+  const status = res.getStatus();
+  if (status !== 201) {
+    throw new Error(`Expected 201, got ${status}`);
+  }
+
+  const data = res.getBody();
+  if (!data?.accessToken) {
+    throw new Error('Missing accessToken in register response');
+  }
+
+  bru.setEnvVar('jwt_token', data.accessToken);
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

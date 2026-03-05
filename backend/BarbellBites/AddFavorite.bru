@@ -1,0 +1,16 @@
+meta {
+  name: Add Favorite
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{V1_API_LINK}}/favorites/{{recipeId}}
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

@@ -1,0 +1,33 @@
+meta {
+  name: Edge Forbidden Update By Other
+  type: http
+  seq: 6
+}
+
+put {
+  url: {{V2_API_LINK}}/recipes/{{edgeRecipeSlug}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{edgeOtherToken}}
+}
+
+body:json {
+  {
+    "description": "Unauthorized update attempt"
+  }
+}
+
+script:post-response {
+  const status = res.getStatus();
+  if (status !== 403) {
+    throw new Error(`Expected 403, got ${status}`);
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

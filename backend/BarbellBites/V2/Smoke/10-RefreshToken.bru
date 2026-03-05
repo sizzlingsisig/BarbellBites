@@ -1,0 +1,30 @@
+meta {
+  name: Smoke Refresh Token
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{V2_API_LINK}}/auth/refresh
+  body: none
+  auth: none
+}
+
+script:post-response {
+  const status = res.getStatus();
+  if (status !== 200) {
+    throw new Error(`Expected 200, got ${status}`);
+  }
+
+  const data = res.getBody();
+  if (!data?.accessToken) {
+    throw new Error('Missing accessToken in refresh response');
+  }
+
+  bru.setEnvVar('jwt_token', data.accessToken);
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

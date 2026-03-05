@@ -1,9 +1,9 @@
 import express, { type Application } from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
-import authRoutes from './router/authRoutes.js';
 import { errorHandler, notFound } from './middleware/errorMiddleware.js';
 import cookieParser from 'cookie-parser';
+import { registerApiRoutes } from './routes/api.js';
 
 const app: Application = express();
 const corsOrigins = (process.env.FRONTEND_ORIGIN ?? 'http://localhost:5173')
@@ -18,8 +18,8 @@ app.use(
     credentials: true,
   }),
 );
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '5mb' }));
+app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 app.use(cookieParser());
 
 if (process.env.NODE_ENV === 'development') {
@@ -27,7 +27,7 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 // Routes
-app.use('/api/v1/auth', authRoutes);
+registerApiRoutes(app);
 
 // 404 Fallback (Must be placed AFTER all valid routes)
 app.use(notFound);

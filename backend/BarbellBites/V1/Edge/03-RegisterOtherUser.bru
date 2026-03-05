@@ -1,0 +1,38 @@
+meta {
+  name: Edge Register Other User
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{V1_API_LINK}}/auth/register
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "name": "Edge Other",
+    "email": "{{edgeOtherEmail}}",
+    "password": "lightweightbaby"
+  }
+}
+
+script:post-response {
+  const status = res.getStatus();
+  if (status !== 201) {
+    throw new Error(`Expected 201, got ${status}`);
+  }
+
+  const data = res.getBody();
+  if (!data?.accessToken) {
+    throw new Error('Missing other user access token');
+  }
+
+  bru.setEnvVar('edgeOtherToken', data.accessToken);
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

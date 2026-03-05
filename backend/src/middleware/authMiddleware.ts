@@ -1,7 +1,7 @@
 // src/middleware/authMiddleware.ts
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import User, { type IUser } from '../models/User.js';
+import User, { type IUser } from '../models/v1/User.js';
 import { AppError } from '../utils/AppError.js';
 import { HttpStatusCode } from '../constants/httpStatusCodes.js';
 
@@ -44,5 +44,35 @@ export const protect = async (req: Request, res: Response, next: NextFunction) =
     return next();
   } catch (error) {
     return next(new AppError('Invalid or expired token. Please log in again.', HttpStatusCode.UNAUTHORIZED));
+  }
+};
+
+export const attachUserIfPresent = async (req: Request, _res: Response, next: NextFunction) => {
+  try {
+    let token: string | undefined;
+
+    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+      token = req.headers.authorization.split(' ')[1];
+    }
+
+    if (!token) {
+      return next();
+    }
+
+    const secret = process.env.JWT_ACCESS_SECRET;
+    if (!secret) {
+      return next();
+    }
+
+    const decoded = jwt.verify(token, secret) as { id: string };
+    const currentUser = await User.findById(decoded.id);
+
+    if (currentUser) {
+      req.user = currentUser;
+    }
+
+    return next();
+  } catch {
+    return next();
   }
 };

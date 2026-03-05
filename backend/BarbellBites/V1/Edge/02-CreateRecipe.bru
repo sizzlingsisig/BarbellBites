@@ -1,0 +1,46 @@
+meta {
+  name: Edge Create Recipe
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{V1_API_LINK}}/recipes
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{edgeOwnerToken}}
+}
+
+body:json {
+  {
+    "title": "{{edgeRecipeTitle}}",
+    "description": "Recipe used for edge-case coverage.",
+    "visibility": "public",
+    "ingredients": [{ "name": "Chicken Breast", "amount": "200", "unit": "g" }],
+    "steps": ["Prep", "Cook"],
+    "nutritionPerServing": { "calories": 300, "protein": 40, "carbs": 2, "fats": 10 }
+  }
+}
+
+script:post-response {
+  const status = res.getStatus();
+  if (status !== 201) {
+    throw new Error(`Expected 201, got ${status}`);
+  }
+
+  const data = res.getBody();
+  bru.setEnvVar('edgeRecipeId', data?._id);
+  bru.setEnvVar('edgeRecipeSlug', data?.slug);
+
+  if (!data?._id || !data?.slug) {
+    throw new Error('Missing recipe id/slug for edge tests');
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
