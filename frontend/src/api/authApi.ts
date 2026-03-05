@@ -69,3 +69,7 @@ export const fetchCurrentUserRequest = async (): Promise<AuthUser> => {
   const response = await api.get<MeResponse>('/auth/test')
   return response.data.data.user
 }
+
+export const forgotPasswordRequest = async (email: string): Promise<void> => {
+  await api.post('/auth/forgot-password', { email })
+}

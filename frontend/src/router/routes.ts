@@ -6,6 +6,8 @@ import FavoritesPage from '../pages/FavoritesPage'
 import MyRecipesPage from '../pages/MyRecipesPage'
 import NotFoundPage from '../pages/NotFoundPage'
 import SignupPage from '../pages/SignupPage'
+import ForgotPasswordPage from '../pages/ForgotPasswordPage'
+
 
 export const ROUTE_PATHS = {
   RECIPES: '/',
@@ -15,6 +17,7 @@ export const ROUTE_PATHS = {
   AUTH: '/login',
   REGISTER: '/register',
   NOT_FOUND: '*',
+  FORGOT_PASSWORD: '/forgot-password',
 } as const
 
 export const ROUTE_LAYOUTS = {
@@ -115,4 +118,13 @@ export const appRoutes: AppRoute[] = [
       layout: ROUTE_LAYOUTS.BLANK,
     },
   },
+  {
+    path: ROUTE_PATHS.FORGOT_PASSWORD,
+    component: ForgotPasswordPage,
+    meta: {
+      title: 'BarbellBites | Forgot Password',
+      guestOnly: true,
+      layout: ROUTE_LAYOUTS.BLANK,
+    },
+  }
 ]

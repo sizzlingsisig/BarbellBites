@@ -1,3 +1,6 @@
+import { ForgotPasswordBody } from '../../requests/v2/authRequests.js';
+import { requestPasswordReset } from '../../services/v2/authService.js';
+
 import { Request, Response } from 'express';
 import { RegisterBody, LoginBody } from '../../requests/v2/authRequests.js';
 import {
@@ -165,4 +168,25 @@ export const logout = async (req: Request, res: Response) => {
 			message: 'An unexpected authentication error occurred.',
 		});
 	}
+};
+
+
+export const forgotPassword = async (
+    req: Request<{}, {}, ForgotPasswordBody>,
+    res: Response,
+) => {
+    try {
+        await requestPasswordReset(req.body.email);
+        
+        // Always return success to prevent enumeration
+        return res.status(HttpStatusCode.OK).json({
+            status: 'success',
+            message: 'If an account with that email exists, a password reset link has been sent.',
+        });
+    } catch {
+        return res.status(HttpStatusCode.INTERNAL_SERVER).json({
+            status: 'error',
+            message: 'An unexpected error occurred.',
+        });
+    }
 };

@@ -37,8 +37,13 @@ Default URL: `http://localhost:5173`
 
 ## Related Docs
 
-- `../docs/frontend/apidoc.md`
-- `../docs/architecture.md`
-- `../docs/frontend/design.md`
-- `../docs/dependencies.md`
-- `../docs/frontend/plan.md`
+- `../docs/TechnicalReference.md`
+- `../docs/ArchitectureDoc.md`
+- `../docs/ApiDocumentation.md`
+- `../docs/DatabaseSchema.md`
+- `../docs/EnvironmentConfigurationGuide.md`
+- `../docs/CodeStyleGuide.md`
+- `../docs/TestingGuide.md`
+- `../docs/SecurityGuide.md`
+- `../docs/TroubleshootingFaq.md`
+- `../docs/recipes-enhancement-plan.md`

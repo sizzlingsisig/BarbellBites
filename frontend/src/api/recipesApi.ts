@@ -65,7 +65,18 @@ export type PaginatedRecipesResponse = {
   }
 }
 
-export const getRecipes = async (params?: { page?: number; limit?: number; search?: string }) => {
+export type RecipeQueryParams = {
+  page?: number
+  limit?: number
+  search?: string
+  diet?: string
+  mealType?: string
+  cuisine?: string
+  maxPrepTime?: number
+  maxTotalTime?: number
+}
+
+export const getRecipes = async (params?: RecipeQueryParams) => {
   const response = await api.get<PaginatedRecipesResponse>('/recipes', { params })
   return response.data
 }
@@ -100,7 +111,7 @@ export const undoDeleteRecipe = async (slug: string) => {
   return response.data
 }
 
-export const getUserRecipes = async (params?: { page?: number; limit?: number; search?: string }) => {
+export const getUserRecipes = async (params?: RecipeQueryParams) => {
   const response = await api.get<PaginatedRecipesResponse>('/recipes/mine', { params })
   return response.data
 }
