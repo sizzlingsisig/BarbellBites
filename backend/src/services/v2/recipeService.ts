@@ -1,5 +1,6 @@
-import { Recipe, IRecipe } from '../../models/v2/Recipe.js';
+import { BackupRecipe, IRecipe, Recipe } from '../../models/v2/Recipe.js';
 import { RECIPE_DIETS } from '../../constants/recipeTaxonomy.js';
+import { mirrorWriteToBackup, withReadFailover } from '../../utils/failover.js';
 
 type RecipePayload = Partial<IRecipe> & {
 	tags?: string[];
@@ -109,6 +110,16 @@ function buildRecipeFilters(query: RecipeListQuery): MongoFilter {
 export async function createRecipe(userId: string, data: Partial<IRecipe>) {
 	const normalizedData = normalizeRecipePayload(data as RecipePayload);
 	const recipe = await Recipe.create({ ...normalizedData, owner: userId });
+
+	await mirrorWriteToBackup('recipe create', async () => {
+		const backupPayload = recipe.toObject();
+		await BackupRecipe.updateOne(
+			{ _id: recipe._id },
+			{ $set: backupPayload },
+			{ upsert: true, setDefaultsOnInsert: true },
+		);
+	});
+
 	return recipe;
 }
 
@@ -122,7 +133,12 @@ export async function getRecipeById(slug: string, userId?: string) {
 	} else {
 		query.visibility = 'public';
 	}
-	return Recipe.findOne(query);
+
+	return withReadFailover(
+		'recipe lookup',
+		() => Recipe.findOne(query),
+		() => BackupRecipe.findOne(query),
+	);
 }
 
 export async function updateRecipe(userId: string, slug: string, data: Partial<IRecipe>) {
@@ -131,6 +147,11 @@ export async function updateRecipe(userId: string, slug: string, data: Partial<I
 	const normalizedData = normalizeRecipePayload(data as RecipePayload);
 	Object.assign(recipe, normalizedData);
 	await recipe.save();
+
+	await mirrorWriteToBackup('recipe update', async () => {
+		await BackupRecipe.updateOne({ _id: recipe._id }, { $set: normalizedData });
+	});
+
 	return recipe;
 }
 
@@ -139,6 +160,11 @@ export async function softDeleteRecipe(userId: string, slug: string) {
 	if (!recipe) return null;
 	recipe.deletedAt = new Date();
 	await recipe.save();
+
+	await mirrorWriteToBackup('recipe soft delete', async () => {
+		await BackupRecipe.updateOne({ _id: recipe._id }, { $set: { deletedAt: recipe.deletedAt } });
+	});
+
 	return recipe;
 }
 
@@ -147,6 +173,11 @@ export async function undoDeleteRecipe(userId: string, slug: string) {
 	if (!recipe) return null;
 	recipe.deletedAt = null;
 	await recipe.save();
+
+	await mirrorWriteToBackup('recipe undo delete', async () => {
+		await BackupRecipe.updateOne({ _id: recipe._id }, { $set: { deletedAt: null } });
+	});
+
 	return recipe;
 }
 
@@ -166,10 +197,19 @@ export async function listPublicRecipes(query: RecipeListQuery, userId?: string)
 		filter.visibility = 'public';
 	}
 
-	const [items, total] = await Promise.all([
-		Recipe.find(filter).skip(skip).limit(limit).sort({ createdAt: -1 }),
-		Recipe.countDocuments(filter),
-	]);
+	const [items, total] = await withReadFailover(
+		'public recipe list',
+		() =>
+			Promise.all([
+				Recipe.find(filter).skip(skip).limit(limit).sort({ createdAt: -1 }),
+				Recipe.countDocuments(filter),
+			]),
+		() =>
+			Promise.all([
+				BackupRecipe.find(filter).skip(skip).limit(limit).sort({ createdAt: -1 }),
+				BackupRecipe.countDocuments(filter),
+			]),
+	);
 
 	return {
 		items: items as IRecipe[],
@@ -193,10 +233,19 @@ export async function listUserRecipes(userId: string, query: RecipeListQuery) {
 		deletedAt: null,
 	};
 
-	const [items, total] = await Promise.all([
-		Recipe.find(filter).skip(skip).limit(limit).sort({ createdAt: -1 }),
-		Recipe.countDocuments(filter),
-	]);
+	const [items, total] = await withReadFailover(
+		'user recipe list',
+		() =>
+			Promise.all([
+				Recipe.find(filter).skip(skip).limit(limit).sort({ createdAt: -1 }),
+				Recipe.countDocuments(filter),
+			]),
+		() =>
+			Promise.all([
+				BackupRecipe.find(filter).skip(skip).limit(limit).sort({ createdAt: -1 }),
+				BackupRecipe.countDocuments(filter),
+			]),
+	);
 
 	return {
 		items: items as IRecipe[],

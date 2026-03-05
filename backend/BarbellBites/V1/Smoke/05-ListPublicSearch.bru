@@ -17,12 +17,13 @@ script:post-response {
   }
 
   const data = res.getBody();
-  if (!Array.isArray(data)) {
-    throw new Error('Expected public recipes response to be an array');
+  const recipes = Array.isArray(data) ? data : data?.items;
+  if (!Array.isArray(recipes)) {
+    throw new Error('Expected public recipes response to contain an array of recipes');
   }
 
   const recipeSlug = bru.getEnvVar('recipeSlug');
-  const found = data.some((recipe) => String(recipe?.slug) === String(recipeSlug));
+  const found = recipes.some((recipe) => String(recipe?.slug) === String(recipeSlug));
   if (!found) {
     throw new Error('Created recipe was not found in public search results');
   }

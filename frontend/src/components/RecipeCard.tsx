@@ -7,6 +7,7 @@ interface RecipeCardProps {
   id: string;
   name: string;
   description?: string;
+  image?: string;
   mealType: string;
   goal: string;
   visibility: 'public' | 'private' | 'unlisted';
@@ -16,7 +17,7 @@ interface RecipeCardProps {
   actionMenu?: ReactNode;
 }
 
-export function RecipeCard({ id, name, description, mealType, goal, visibility, totalTime, servings, calories, actionMenu }: RecipeCardProps) {
+export function RecipeCard({ id, name, description, image, mealType, goal, visibility, totalTime, servings, calories, actionMenu }: RecipeCardProps) {
   return (
     <Link
       to={`/recipes/${id}`}
@@ -75,10 +76,12 @@ export function RecipeCard({ id, name, description, mealType, goal, visibility, 
             style={{ background: 'linear-gradient(to top, rgba(0,200,150,0.06), transparent)' }}
           />
           <img
-            src={PLACEHOLDER_IMAGE}
-            alt="Recipe placeholder"
-            className="relative z-10 w-14 h-14 object-contain opacity-60 group-hover:opacity-90 transition-opacity duration-300"
-            style={{ filter: 'drop-shadow(0 0 12px rgba(0,200,150,0.4))' }}
+            src={image || PLACEHOLDER_IMAGE}
+            alt={name}
+            className="relative z-10 w-full h-full object-cover opacity-70 group-hover:opacity-90 transition-opacity duration-300"
+            onError={(event) => {
+              event.currentTarget.src = PLACEHOLDER_IMAGE
+            }}
           />
         </div>
 

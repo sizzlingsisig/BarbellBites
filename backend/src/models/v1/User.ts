@@ -1,5 +1,6 @@
 import mongoose, { Schema, type Document } from 'mongoose';
 import bcrypt from 'bcryptjs';
+import { backupConnection, primaryConnection } from '../../config/db.js';
 
 export interface IUser extends Document {
 	name: string;
@@ -55,5 +56,13 @@ userSchema.methods.comparePassword = async function (
 	return await bcrypt.compare(enteredPassword, this.password);
 };
 
-const User = (mongoose.models.User as mongoose.Model<IUser>) || mongoose.model<IUser>('User', userSchema);
+export const PrimaryUser =
+	(primaryConnection.models.User as mongoose.Model<IUser>) ||
+	primaryConnection.model<IUser>('User', userSchema);
+
+export const BackupUser =
+	(backupConnection.models.User as mongoose.Model<IUser>) ||
+	backupConnection.model<IUser>('User', userSchema);
+
+const User = PrimaryUser;
 export default User;
