@@ -1,6 +1,5 @@
 import 'dotenv/config'
-import mongoose from 'mongoose'
-import { connectDB } from '../config/db.js'
+import { backupConnection, closeDbConnections, connectDB, getActiveConnection } from '../config/db.js'
 import User from '../models/v2/User.js'
 import { Recipe } from '../models/v2/Recipe.js'
 import { Favorite } from '../models/v2/Favorite.js'
@@ -8,8 +7,9 @@ import { Favorite } from '../models/v2/Favorite.js'
 async function resetAndSeedDatabase() {
   await connectDB()
 
-  const db = mongoose.connection.db
-  if (!db) {
+  const activeConnection = getActiveConnection()
+  const db = activeConnection?.db
+  if (!activeConnection || !db) {
     throw new Error('MongoDB connection is not initialized')
   }
 
@@ -269,16 +269,31 @@ async function resetAndSeedDatabase() {
     recipeId: recipes[0]._id,
   })
 
+  const backupDb = backupConnection.db
+  if (backupDb && activeConnection !== backupConnection) {
+    console.log('Replicating seeded data to backup database...')
+    await backupDb.dropDatabase()
+
+    for (const collectionName of ['users', 'recipes', 'favorites']) {
+      const documents = await db.collection(collectionName).find({}).toArray()
+      if (documents.length > 0) {
+        await backupDb.collection(collectionName).insertMany(documents, { ordered: false })
+      }
+    }
+  } else {
+    console.warn('Backup database is offline or already the active database. Seed data was written to active DB only.')
+  }
+
   console.log('Seeding complete')
 }
 
 resetAndSeedDatabase()
   .then(async () => {
-    await mongoose.connection.close()
+    await closeDbConnections()
     process.exit(0)
   })
   .catch(async (error) => {
     console.error('Reset/seed failed:', error)
-    await mongoose.connection.close()
+    await closeDbConnections()
     process.exit(1)
   })

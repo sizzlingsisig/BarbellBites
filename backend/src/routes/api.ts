@@ -2,20 +2,24 @@ import type { Application } from 'express'
 import authRoutes from './v1/authRoutes.js'
 import recipeRoutes from './v1/recipeRoutes.js'
 import favoriteRoutes from './v1/favoriteRoutes.js'
+import healthRoutes from './v1/healthRoutes.js'
 import authRoutesV2 from './v2/authRoutes.js'
 import recipeRoutesV2 from './v2/recipeRoutes.js'
 import favoriteRoutesV2 from './v2/favoriteRoutes.js'
+import healthRoutesV2 from './v2/healthRoutes.js'
 
 export const API_BASE_PATHS = {
   v1: {
     auth: '/api/v1/auth',
     recipes: '/api/v1/recipes',
     favorites: '/api/v1/favorites',
+    health: '/api/v1/health',
   },
   v2: {
     auth: '/api/v2/auth',
     recipes: '/api/v2/recipes',
     favorites: '/api/v2/favorites',
+    health: '/api/v2/health',
   },
 } as const
 
@@ -37,6 +41,9 @@ export const API_ROUTES = {
       list: API_BASE_PATHS.v1.favorites,
       byRecipeId: `${API_BASE_PATHS.v1.favorites}/:recipeId`,
     },
+    health: {
+      db: `${API_BASE_PATHS.v1.health}/db`,
+    },
   },
   v2: {
     auth: {
@@ -56,6 +63,9 @@ export const API_ROUTES = {
       list: API_BASE_PATHS.v2.favorites,
       byRecipeId: `${API_BASE_PATHS.v2.favorites}/:recipeId`,
     },
+    health: {
+      db: `${API_BASE_PATHS.v2.health}/db`,
+    },
   },
 } as const
 
@@ -63,8 +73,10 @@ export function registerApiRoutes(app: Application) {
   app.use(API_BASE_PATHS.v1.auth, authRoutes)
   app.use(API_BASE_PATHS.v1.recipes, recipeRoutes)
   app.use(API_BASE_PATHS.v1.favorites, favoriteRoutes)
+  app.use(API_BASE_PATHS.v1.health, healthRoutes)
 
   app.use(API_BASE_PATHS.v2.auth, authRoutesV2)
   app.use(API_BASE_PATHS.v2.recipes, recipeRoutesV2)
   app.use(API_BASE_PATHS.v2.favorites, favoriteRoutesV2)
+  app.use(API_BASE_PATHS.v2.health, healthRoutesV2)
 }

@@ -1,4 +1,5 @@
 import mongoose, { Schema, type Document, Types } from 'mongoose';
+import { backupConnection, primaryConnection } from '../../config/db.js';
 import {
 	RECIPE_CUISINES,
 	RECIPE_DIETS,
@@ -106,5 +107,13 @@ recipeSchema.pre<IRecipe>('save', function () {
 	}
 });
 
-export const Recipe =
-	(mongoose.models.Recipe as mongoose.Model<IRecipe>) || mongoose.model<IRecipe>('Recipe', recipeSchema);
+export const PrimaryRecipe =
+	(primaryConnection.models.Recipe as mongoose.Model<IRecipe>) ||
+	primaryConnection.model<IRecipe>('Recipe', recipeSchema);
+
+export const BackupRecipe =
+	(backupConnection.models.Recipe as mongoose.Model<IRecipe>) ||
+	backupConnection.model<IRecipe>('Recipe', recipeSchema);
+
+// Keep legacy named export for existing imports.
+export const Recipe = PrimaryRecipe;
