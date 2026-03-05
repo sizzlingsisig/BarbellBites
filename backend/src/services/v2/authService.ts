@@ -130,3 +130,16 @@ export const revokeRefreshToken = async (refreshToken: string): Promise<void> =>
 		{ $unset: { refreshToken: 1 } },
 	);
 };
+
+export const requestPasswordReset = async (email: string): Promise<void> => {
+    const user = await User.findOne({ email });
+    
+    if (!user) {
+        // Return silently to prevent account enumeration
+        return;
+    }
+
+    // TODO: In a full implementation, generate a reset token here, 
+    // save it to the user record, and send an email with the token link.
+    console.log(`[Mock Email Service]: Password reset requested for ${email}`);
+};
