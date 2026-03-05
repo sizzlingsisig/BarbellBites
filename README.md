@@ -154,13 +154,16 @@ Backend default: `http://localhost:3000`
 
 Project docs:
 
-- `docs/backend/sync-playbook.md`
-- `docs/backend/versioning-policy.md`
-- `docs/architecture.md`
-- `docs/dependencies.md`
-- `docs/frontend/apidoc.md`
-- `docs/frontend/design.md`
-- `docs/frontend/plan.md`
+- `docs/TechnicalReference.md`
+- `docs/ArchitectureDoc.md`
+- `docs/ApiDocumentation.md`
+- `docs/DatabaseSchema.md`
+- `docs/EnvironmentConfigurationGuide.md`
+- `docs/CodeStyleGuide.md`
+- `docs/TestingGuide.md`
+- `docs/SecurityGuide.md`
+- `docs/TroubleshootingFaq.md`
+- `docs/recipes-enhancement-plan.md`
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
