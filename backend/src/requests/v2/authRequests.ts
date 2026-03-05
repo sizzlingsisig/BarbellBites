@@ -18,3 +18,11 @@ export const LoginRequest = z.object({
 
 export type RegisterBody = z.infer<typeof RegisterRequest>['body'];
 export type LoginBody = z.infer<typeof LoginRequest>['body'];
+
+export const ForgotPasswordRequest = z.object({
+    body: z.object({
+        email: z.string().email('Invalid email format'),
+    }),
+});
+
+export type ForgotPasswordBody = z.infer<typeof ForgotPasswordRequest>['body'];
