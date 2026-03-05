@@ -12,10 +12,10 @@ import {
   SimpleGrid,
   Stack,
   Stepper,
-  TagsInput,
   Text,
   TextInput,
   Title,
+  MultiSelect, // ✅ NEW
 } from '@mantine/core'
 import type { RecipeMutationPayload } from '../api/recipesApi'
 import { useRecipeTaxonomy } from '../hooks/useRecipeTaxonomy'
@@ -121,6 +121,12 @@ const buildFormStateFromPayload = (payload: RecipeMutationPayload): CreateFormSt
   fats: String(payload.nutrition?.fats ?? 0),
 })
 
+// ✅ Utility: allow only taxonomy options (extra safety)
+function filterToAllowed(values: string[], allowed: string[]) {
+  const set = new Set(allowed)
+  return values.filter((v) => set.has(v))
+}
+
 function CreateRecipeModal({ opened, loading, error, onClose, onSubmit, mode = 'create', initialValues = null }: CreateRecipeModalProps) {
   const [form, setForm] = useState<CreateFormState>(initialFormState)
   const taxonomy = useRecipeTaxonomy(opened)
@@ -167,10 +173,6 @@ function CreateRecipeModal({ opened, loading, error, onClose, onSubmit, mode = '
       const { value } = event.currentTarget
       setForm((prev) => ({ ...prev, [field]: value }))
     }
-
-  const updateTagField = (field: 'diets' | 'mealTypes' | 'cuisines', values: string[]) => {
-    setForm((prev) => ({ ...prev, [field]: values }))
-  }
 
   const updateIngredientField = (index: number, field: keyof Omit<IngredientRow, 'id'>, value: string) => {
     setForm((prev) => ({
@@ -268,10 +270,7 @@ function CreateRecipeModal({ opened, loading, error, onClose, onSubmit, mode = '
     [form.ingredients],
   )
 
-  const normalizedInstructions = useMemo(
-    () => form.instructions.map((row) => row.text.trim()).filter(Boolean),
-    [form.instructions],
-  )
+  const normalizedInstructions = useMemo(() => form.instructions.map((row) => row.text.trim()).filter(Boolean), [form.instructions])
 
   const fieldErrors = useMemo(() => {
     const nonNegative = (value: number) => Number.isFinite(value) && value >= 0
@@ -293,10 +292,7 @@ function CreateRecipeModal({ opened, loading, error, onClose, onSubmit, mode = '
         normalizedIngredients.length > 0 && normalizedIngredients.every((row) => row.name && row.amount && row.unit)
           ? ''
           : 'Each ingredient needs name, amount, and unit.',
-      instructions:
-        normalizedInstructions.length > 0 && form.instructions.every((row) => row.text.trim())
-          ? ''
-          : 'Each instruction row must have text.',
+      instructions: normalizedInstructions.length > 0 && form.instructions.every((row) => row.text.trim()) ? '' : 'Each instruction row must have text.',
       calories: nonNegative(nutrition.calories) ? '' : 'Calories must be non-negative.',
       protein: nonNegative(nutrition.protein) ? '' : 'Protein must be non-negative.',
       carbs: nonNegative(nutrition.carbs) ? '' : 'Carbs must be non-negative.',
@@ -382,6 +378,11 @@ function CreateRecipeModal({ opened, loading, error, onClose, onSubmit, mode = '
     return null
   }
 
+  // ✅ Options for MultiSelect
+  const dietOptions = taxonomy.diets.map((v) => ({ value: v, label: v }))
+  const mealTypeOptions = taxonomy.mealTypes.map((v) => ({ value: v, label: v }))
+  const cuisineOptions = taxonomy.cuisines.map((v) => ({ value: v, label: v }))
+
   return (
     <Modal
       opened={opened}
@@ -464,21 +465,8 @@ function CreateRecipeModal({ opened, loading, error, onClose, onSubmit, mode = '
               <Stack gap="sm" mt="sm">
                 <TextInput label="Recipe Title" value={form.title} onChange={updateFormField('title')} error={attempted ? fieldErrors.title : undefined} required autoFocus />
                 <TextInput label="Recipe Description" value={form.description} onChange={updateFormField('description')} error={attempted ? fieldErrors.description : undefined} required />
-                <TextInput
-                  label="Image URL"
-                  placeholder="https://example.com/my-recipe.jpg"
-                  value={form.image}
-                  onChange={updateFormField('image')}
-                  error={attempted ? fieldErrors.image : undefined}
-                />
-                <FileInput
-                  label="Or upload one image"
-                  placeholder="Choose image file"
-                  accept="image/*"
-                  clearable
-                  value={null}
-                  onChange={handleImageFileChange}
-                />
+                <TextInput label="Image URL" placeholder="https://example.com/my-recipe.jpg" value={form.image} onChange={updateFormField('image')} error={attempted ? fieldErrors.image : undefined} />
+                <FileInput label="Or upload one image" placeholder="Choose image file" accept="image/*" clearable value={null} onChange={handleImageFileChange} />
                 <Select
                   label="Visibility"
                   data={[
@@ -491,34 +479,58 @@ function CreateRecipeModal({ opened, loading, error, onClose, onSubmit, mode = '
               </Stack>
             </Stepper.Step>
 
+            {/* ✅ STEP 2 PATCHED: MultiSelect only (no free typing) */}
             <Stepper.Step label={stepLabels[1]} description={stepDescriptions[1]} color={stepHasError(1) && attempted ? 'red' : 'teal'}>
               <Stack gap="sm" mt="sm">
-                <TagsInput
+                <MultiSelect
                   label="Diets"
-                  description="Search and press Enter to add"
-                  placeholder="Add diets"
-                  data={taxonomy.diets}
+                  description="Search and select from the list"
+                  placeholder="Select diets"
+                  data={dietOptions}
+                  searchable
+                  clearable
                   value={form.diets}
-                  onChange={(values) => updateTagField('diets', values)}
-                  clearable
+                  onChange={(values) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      diets: filterToAllowed(values, taxonomy.diets),
+                    }))
+                  }
+                  nothingFoundMessage="No matching diet"
                 />
-                <TagsInput
+
+                <MultiSelect
                   label="Meal Types"
-                  description="Search and press Enter to add"
-                  placeholder="Add meal types"
-                  data={taxonomy.mealTypes}
+                  description="Search and select from the list"
+                  placeholder="Select meal types"
+                  data={mealTypeOptions}
+                  searchable
+                  clearable
                   value={form.mealTypes}
-                  onChange={(values) => updateTagField('mealTypes', values)}
-                  clearable
+                  onChange={(values) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      mealTypes: filterToAllowed(values, taxonomy.mealTypes),
+                    }))
+                  }
+                  nothingFoundMessage="No matching meal type"
                 />
-                <TagsInput
+
+                <MultiSelect
                   label="Cuisines"
-                  description="Search and press Enter to add"
-                  placeholder="Add cuisines"
-                  data={taxonomy.cuisines}
-                  value={form.cuisines}
-                  onChange={(values) => updateTagField('cuisines', values)}
+                  description="Search and select from the list"
+                  placeholder="Select cuisines"
+                  data={cuisineOptions}
+                  searchable
                   clearable
+                  value={form.cuisines}
+                  onChange={(values) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      cuisines: filterToAllowed(values, taxonomy.cuisines),
+                    }))
+                  }
+                  nothingFoundMessage="No matching cuisine"
                 />
               </Stack>
             </Stepper.Step>
@@ -543,11 +555,30 @@ function CreateRecipeModal({ opened, loading, error, onClose, onSubmit, mode = '
                     Add Ingredient Row
                   </Button>
                 </Group>
+
                 {form.ingredients.map((row, index) => (
                   <Group key={row.id} align="end" gap="xs" wrap="nowrap">
-                    <TextInput style={{ flex: 2 }} label="Ingredient Name" value={row.name} onChange={(e) => updateIngredientField(index, 'name', e.currentTarget.value)} error={attempted && !row.name.trim() ? 'Required' : undefined} />
-                    <TextInput style={{ flex: 1 }} label="Quantity" value={row.amount} onChange={(e) => updateIngredientField(index, 'amount', e.currentTarget.value)} error={attempted && !row.amount.trim() ? 'Required' : undefined} />
-                    <TextInput style={{ flex: 1 }} label="Unit (g, ml, tbsp)" value={row.unit} onChange={(e) => updateIngredientField(index, 'unit', e.currentTarget.value)} error={attempted && !row.unit.trim() ? 'Required' : undefined} />
+                    <TextInput
+                      style={{ flex: 2 }}
+                      label="Ingredient Name"
+                      value={row.name}
+                      onChange={(e) => updateIngredientField(index, 'name', e.currentTarget.value)}
+                      error={attempted && !row.name.trim() ? 'Required' : undefined}
+                    />
+                    <TextInput
+                      style={{ flex: 1 }}
+                      label="Quantity"
+                      value={row.amount}
+                      onChange={(e) => updateIngredientField(index, 'amount', e.currentTarget.value)}
+                      error={attempted && !row.amount.trim() ? 'Required' : undefined}
+                    />
+                    <TextInput
+                      style={{ flex: 1 }}
+                      label="Unit (g, ml, tbsp)"
+                      value={row.unit}
+                      onChange={(e) => updateIngredientField(index, 'unit', e.currentTarget.value)}
+                      error={attempted && !row.unit.trim() ? 'Required' : undefined}
+                    />
                     <ActionIcon variant="subtle" color="red" onClick={() => removeIngredientRow(index)} disabled={form.ingredients.length === 1} aria-label="Remove ingredient">
                       −
                     </ActionIcon>
@@ -564,9 +595,16 @@ function CreateRecipeModal({ opened, loading, error, onClose, onSubmit, mode = '
                     Add Instruction Step
                   </Button>
                 </Group>
+
                 {form.instructions.map((row, index) => (
                   <Group key={row.id} align="end" gap="xs" wrap="nowrap">
-                    <TextInput style={{ flex: 1 }} label={`Instruction Step ${index + 1}`} value={row.text} onChange={(e) => updateInstructionField(index, e.currentTarget.value)} error={attempted && !row.text.trim() ? 'Required' : undefined} />
+                    <TextInput
+                      style={{ flex: 1 }}
+                      label={`Instruction Step ${index + 1}`}
+                      value={row.text}
+                      onChange={(e) => updateInstructionField(index, e.currentTarget.value)}
+                      error={attempted && !row.text.trim() ? 'Required' : undefined}
+                    />
                     <ActionIcon variant="subtle" color="gray" onClick={() => moveInstruction(index, -1)} disabled={index === 0} aria-label="Move up">
                       ↑
                     </ActionIcon>
