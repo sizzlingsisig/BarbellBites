@@ -17,6 +17,24 @@ function splitCSV(value: string | null) {
     .filter(Boolean)
 }
 
+/** Contrast tokens (adjust here, affects whole sidebar section) */
+const COLOR = {
+  primaryText: 'rgba(255,255,255,0.90)',
+  secondaryText: 'rgba(255,255,255,0.70)', // ✅ bump from 0.45/0.65 to ~0.70
+  tertiaryText: 'rgba(255,255,255,0.58)',
+  mutedText: 'rgba(255,255,255,0.45)',
+  placeholder: 'rgba(255,255,255,0.55)', // ✅ more readable placeholder
+  icon: 'rgba(255,255,255,0.60)', // ✅ icon visible
+  border: 'rgba(255,255,255,0.10)',
+  divider: 'rgba(255,255,255,0.08)',
+  inputBg: 'rgba(255,255,255,0.06)', // ✅ slightly brighter input bg
+  inputHoverBg: 'rgba(255,255,255,0.08)',
+  panelBg: 'rgba(255,255,255,0.02)',
+  panelHoverBg: 'rgba(255,255,255,0.04)',
+  accent: '#00c896',
+  accentSoft: 'rgba(0,200,150,0.85)',
+}
+
 export default function SidebarFilterSearchSection() {
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
@@ -77,9 +95,7 @@ export default function SidebarFilterSearchSection() {
         const currentValues = splitCSV(next.get(paramKey))
         const isActive = currentValues.includes(value)
 
-        const updated = isActive
-          ? currentValues.filter((v) => v !== value)
-          : [...currentValues, value]
+        const updated = isActive ? currentValues.filter((v) => v !== value) : [...currentValues, value]
 
         if (updated.length === 0) next.delete(paramKey)
         else next.set(paramKey, updated.join(','))
@@ -180,35 +196,45 @@ export default function SidebarFilterSearchSection() {
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.currentTarget.value)}
           placeholder="Search recipes…"
-          leftSection={<IconSearch size={14} style={{ color: 'rgba(255,255,255,0.4)' }} />}
+          leftSection={<IconSearch size={14} style={{ color: COLOR.icon }} />}
           size="sm"
           styles={{
             input: {
-              background: 'rgba(255,255,255,0.04)',
-              color: 'rgba(255,255,255,0.85)',
-              border: '1px solid rgba(255,255,255,0.09)',
-              backdropFilter: 'blur(8px)',
-              fontSize: '0.8rem',
-              '&::placeholder': { color: 'rgba(255,255,255,0.3)' },
+              background: COLOR.inputBg,
+              color: COLOR.primaryText,
+              border: `1px solid ${COLOR.border}`,
+              backdropFilter: 'blur(10px)',
+              fontSize: '0.82rem',
+              '&::placeholder': { color: COLOR.placeholder },
             },
           }}
         />
 
         <Group justify="space-between" align="center">
-          <Text size="xs" style={{ color: 'rgba(255,255,255,0.45)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+          <Text
+            size="xs"
+            style={{
+              color: COLOR.secondaryText, // ✅ brighter
+              letterSpacing: '0.10em',
+              textTransform: 'uppercase',
+              fontWeight: 800,
+            }}
+          >
             Filters
           </Text>
 
           <Text
             size="xs"
             role="button"
-            onClick={clearAllFilters}
+            onClick={hasAnyFilter ? clearAllFilters : undefined}
             style={{
               cursor: hasAnyFilter ? 'pointer' : 'default',
-              color: hasAnyFilter ? 'rgba(0,200,150,0.9)' : 'rgba(255,255,255,0.25)',
-              textDecoration: hasAnyFilter ? 'underline' : 'none',
-              textUnderlineOffset: '3px',
+              color: hasAnyFilter ? COLOR.accentSoft : 'rgba(255,255,255,0.30)', // ✅ brighter + clearly clickable
+              textDecoration: 'none',
               userSelect: 'none',
+              fontWeight: 800,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
             }}
           >
             Clear all
@@ -216,7 +242,7 @@ export default function SidebarFilterSearchSection() {
         </Group>
 
         {/* Strong separation from nav (inside this section) */}
-        <Divider style={{ borderColor: 'rgba(255,255,255,0.07)' }} />
+        <Divider style={{ borderColor: COLOR.divider }} />
       </div>
 
       {/* Scrollable filters list */}
@@ -229,16 +255,16 @@ export default function SidebarFilterSearchSection() {
           styles={{
             item: {
               background: 'transparent',
-              border: '1px solid rgba(255,255,255,0.07)',
+              border: '1px solid rgba(255,255,255,0.08)',
               borderRadius: '12px',
               overflow: 'hidden',
             },
             control: {
-              background: 'rgba(255,255,255,0.02)',
-              '&:hover': { background: 'rgba(255,255,255,0.04)' },
+              background: COLOR.panelBg,
+              '&:hover': { background: COLOR.panelHoverBg },
             },
             label: { padding: '10px 10px' },
-            chevron: { color: 'rgba(255,255,255,0.5)' },
+            chevron: { color: 'rgba(255,255,255,0.65)' }, // ✅ clearer chevron
             panel: { padding: '10px 12px 12px' },
           }}
         >
@@ -253,11 +279,11 @@ export default function SidebarFilterSearchSection() {
                     <Text
                       size="xs"
                       style={{
-                        color: 'rgba(255,255,255,0.8)',
-                        fontWeight: 700,
-                        letterSpacing: '0.08em',
+                        color: COLOR.primaryText, // ✅ brighter header
+                        fontWeight: 800,
+                        letterSpacing: '0.10em',
                         textTransform: 'uppercase',
-                        fontSize: '0.7rem',
+                        fontSize: '0.70rem',
                       }}
                     >
                       {group.label}
@@ -267,9 +293,9 @@ export default function SidebarFilterSearchSection() {
                       <Text
                         size="xs"
                         style={{
-                          color: '#00c896',
-                          fontWeight: 800,
-                          letterSpacing: '0.05em',
+                          color: COLOR.accent,
+                          fontWeight: 900,
+                          letterSpacing: '0.06em',
                         }}
                       >
                         ({count})
@@ -279,7 +305,7 @@ export default function SidebarFilterSearchSection() {
                 </Accordion.Control>
 
                 <Accordion.Panel>
-                  <Stack gap={6}>
+                  <Stack gap={8}>
                     {group.items.map((item) => (
                       <Checkbox
                         key={item.value}
@@ -290,14 +316,14 @@ export default function SidebarFilterSearchSection() {
                         onChange={() => handleFilterToggle(group.paramKey, item.value)}
                         styles={{
                           label: {
-                            color: 'rgba(255,255,255,0.65)',
-                            fontWeight: 500,
-                            fontSize: '0.8rem',
+                            color: COLOR.secondaryText, // ✅ brighter labels
+                            fontWeight: 600,
+                            fontSize: '0.82rem',
                             cursor: 'pointer',
                           },
                           input: {
-                            background: 'rgba(255,255,255,0.05)',
-                            border: '1px solid rgba(255,255,255,0.15)',
+                            background: 'rgba(255,255,255,0.06)',
+                            border: '1px solid rgba(255,255,255,0.18)',
                           },
                         }}
                       />
@@ -308,6 +334,13 @@ export default function SidebarFilterSearchSection() {
             )
           })}
         </Accordion>
+
+        {/* Optional: tiny helper copy at bottom (improves clarity without clutter) */}
+        <div className="pt-3">
+          <Text size="xs" style={{ color: COLOR.tertiaryText }}>
+            Tip: You can select multiple options per category.
+          </Text>
+        </div>
       </div>
     </div>
   )
