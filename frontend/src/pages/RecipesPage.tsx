@@ -7,6 +7,7 @@ import CreateRecipeModal from '../components/CreateRecipeModal'
 import { notifyError, notifySuccess } from '../services/notify'
 import { RECIPES_REFRESH_EVENT } from '../hooks/useRecipeDeleteWithUndo'
 import { addFavorite, getFavorites, removeFavorite } from '../api/favoritesApi'
+import { useSearchParams } from 'react-router-dom'
 
 function RecipesPage() {
   const [recipes, setRecipes] = useState<RecipeListItem[]>([])
@@ -16,18 +17,42 @@ function RecipesPage() {
   const [limit] = useState(6)
   const [totalPages, setTotalPages] = useState(0)
   const [totalRecipes, setTotalRecipes] = useState(0)
-
+  const [searchParams] = useSearchParams() 
   const [createOpen, setCreateOpen] = useState(false)
   const [createLoading, setCreateLoading] = useState(false)
   const [createError, setCreateError] = useState('')
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set())
   const [favoriteLoadingId, setFavoriteLoadingId] = useState<string | null>(null)
 
-  const loadRecipes = async (nextPage = page) => {
+const loadRecipes = async (nextPage = page) => {
     try {
       setLoading(true)
       setError('')
-      const data = await getRecipes({ page: nextPage, limit })
+      
+      // EXTRCT PARAMS FROM URL
+      const search = searchParams.get('search') || undefined
+      const diet = searchParams.get('diet') || undefined
+      const mealType = searchParams.get('mealType') || undefined
+      const cuisine = searchParams.get('cuisine') || undefined
+      const maxPrepTime = searchParams.get('maxPrepTime') 
+        ? Number(searchParams.get('maxPrepTime')) 
+        : undefined
+      const maxTotalTime = searchParams.get('maxTotalTime') 
+        ? Number(searchParams.get('maxTotalTime')) 
+        : undefined
+
+      // PASS PARAMS TO API
+      const data = await getRecipes({ 
+        page: nextPage, 
+        limit,
+        search,
+        diet,
+        mealType,
+        cuisine,
+        maxPrepTime,
+        maxTotalTime
+      })
+      
       setRecipes(Array.isArray(data.items) ? data.items : [])
       setTotalPages(data.pagination?.totalPages ?? 0)
       setTotalRecipes(data.pagination?.total ?? 0)
@@ -41,8 +66,9 @@ function RecipesPage() {
   }
 
   useEffect(() => {
-    void loadRecipes(page)
-  }, [page])
+    // Reset to page 1 whenever the search parameters change
+    void loadRecipes(1)
+  }, [searchParams])
 
   const loadFavorites = async () => {
     try {
